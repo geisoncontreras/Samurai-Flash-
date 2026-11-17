@@ -288,6 +288,17 @@ html,body,.btn,.ar,.onR input,#pauseBtn,#onQuit{font-family:"Trebuchet MS","Aria
  #bPlay{font-size:min(4.2vw,7vh);padding:min(12px,2vh) 44px}
  #sMenu .btn.small{padding:min(8px,1.6vh) 12px;font-size:min(13px,3.6vh)}
 }
+.onQk{display:flex;gap:6px;align-items:center}.onQk span{flex:1;font-weight:900;font-size:13px;color:#ffe9a8;white-space:nowrap}.onQk .btn{width:44px;padding-left:0;padding-right:0}
+.salSz{align-items:center;gap:6px}.salSz span{font-weight:900}.salSz .btn.sel{background:linear-gradient(#ffe066,#ff9f1a);color:#3a1a00}
+.onTwo{display:flex;gap:6px}
+@media (max-height:520px){#sOnline,#sSalas{gap:4px;padding-top:4px;padding-bottom:4px}#sOnline .sh,#sSalas .sh{font-size:20px}#sOnline .onR{gap:4px}#sOnline .btn.small,#sSalas .btn.small{padding:5px 8px;font-size:12px}#sOnline .onR input{padding:4px 8px}#sOnline .onQk .btn{width:38px}.salBox{max-height:46vh}}.onTwo .btn{flex:1;padding-left:4px;padding-right:4px}
+.salBox{width:min(620px,94vw);max-height:52vh;overflow-y:auto;padding:8px}
+.salR{display:flex;align-items:center;gap:10px;padding:6px 4px;border-top:2px dashed rgba(255,255,255,.12)}
+.salR:first-child{border-top:0}
+.salR img{width:44px;height:44px;border-radius:12px;border:3px solid #120624;background:radial-gradient(circle at 50% 40%,#fff,#b9a6ff 60%,#4a2a8a);flex:none}
+.salR div{flex:1;min-width:0;text-align:left}.salR b{display:block;font-size:15px}.salR i{font-style:normal;font-size:12px;color:#cdbfff}
+.salEmpty{padding:18px;text-align:center;font-weight:800;color:#e8dcff}
+#salErr{color:#ffb0a0;min-height:14px}
 </style>
 </head>
 <body>
@@ -381,7 +392,8 @@ html,body,.btn,.ar,.onR input,#pauseBtn,#onQuit{font-family:"Trebuchet MS","Aria
       <div class="box onL"><div class="cat">TU SAMURÁI: <span id="onMe"></span></div><div id="onGrid"></div></div>
       <div class="box onR">
         <label class="onLbl">TU NOMBRE<input id="onName" maxlength="10" autocomplete="off" spellcheck="false" placeholder="Samurái"></label>
-        <button class="btn small gold" id="onCreate">CREAR SALA</button>
+        <div class="onQk"><span>⚡ PARTIDA RÁPIDA</span><button class="btn small green" data-q="2">2</button><button class="btn small green" data-q="3">3</button><button class="btn small green" data-q="4">4</button></div>
+        <div class="onTwo"><button class="btn small blue" id="onBrowse">🔎 VER SALAS</button><button class="btn small gold" id="onCreate">CREAR SALA</button></div>
         <div class="onOr">o únete con el código de un amigo</div>
         <div class="onJoin"><input id="onCode" maxlength="4" placeholder="ABCD" autocomplete="off" spellcheck="false" autocapitalize="characters"><button class="btn small blue" id="onJoin">UNIRSE</button></div>
         <div id="onErr"></div>
@@ -390,6 +402,13 @@ html,body,.btn,.ar,.onR input,#pauseBtn,#onQuit{font-family:"Trebuchet MS","Aria
     <button class="btn small alt" data-go="mode">ATRÁS</button>
   </div>
 
+  <div class="screen" id="sSalas">
+    <div class="sh">🔎 SALAS ABIERTAS</div>
+    <div class="row salSz"><span>Partidas de:</span><button class="btn small alt sel" data-m="0">TODAS</button><button class="btn small alt" data-m="2">2</button><button class="btn small alt" data-m="3">3</button><button class="btn small alt" data-m="4">4</button></div>
+    <div class="box salBox"><div id="salList"></div></div>
+    <div id="salErr" class="tag"></div>
+    <div class="row"><button class="btn small gold" id="salCreate">CREAR SALA DE 4</button><button class="btn small alt" id="salBack">ATRÁS</button></div>
+  </div>
   <div class="screen" id="sLobby">
     <div class="sh">SALA <span id="lbCode" class="lbCode"></span></div>
     <div class="tag">Comparte este código: tus amigos entran en ONLINE → UNIRSE</div>
@@ -1186,8 +1205,8 @@ $('pauseBtn').addEventListener('click',()=>pauseGame());
 /* =========================================================
    MENÚS
    ========================================================= */
-const SCREENS=['sMenu','sMode','sSelect','sResults','sPause','sProgress','sHow','sOnline','sLobby','sStory','sStoryTxt','sCine'];
-function show(id){if(['sMenu','sMode','sSelect','sOnline','sLobby','sProgress','sHow','sStory','sStoryTxt','sCine'].includes(id))MUS.track='menu';SCREENS.forEach(s=>$(s).classList.toggle('on',s===id));}
+const SCREENS=['sMenu','sMode','sSelect','sResults','sPause','sProgress','sHow','sOnline','sLobby','sStory','sStoryTxt','sCine','sSalas'];
+function show(id){if(['sMenu','sMode','sSelect','sOnline','sLobby','sProgress','sHow','sStory','sStoryTxt','sCine','sSalas'].includes(id))MUS.track='menu';SCREENS.forEach(s=>$(s).classList.toggle('on',s===id));}
 function playing(){return G.mode==='cpu'||G.mode==='pvp';}
 function pauseGame(){if(!playing()||G.paused||G.state==='matchEnd'&&G.shown)return;tensionStop();G.paused=true;G.pl.forEach(p=>{if(p.br&&p.br.snd){SFX.breathStop(p.br.snd,0);p.br.snd=null;}});show('sPause');setWind(0);}
 function resumeGame(){if(!G.paused)return;G.paused=false;show(null);if(G.state==='breath'){startBreath();return;}
@@ -1367,35 +1386,66 @@ function genCode(){const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i
 function myName(){return (SAVE.name||'').trim().slice(0,10)||'Samurái';}
 function myInfo(){return {name:myName(),c:SAVE.p1.c,k:SAVE.p1.k,e:SAVE.p1.e,j:O.net.TS};}
 function playerIds(v){const P=(v&&v.players)||{};return Object.keys(P).sort((a,b)=>((P[a].j||0)-(P[b].j||0))||(a<b?-1:1));}
-function onErr(t){$('onErr').textContent=t||'';}
+function onErr(t){$('onErr').textContent=t||'';$('salErr').textContent=t||'';}
 let onWakeT=null;function onWake(){clearInterval(onWakeT);if(!O.net||O.net.connected||LOCALNET)return;onErr(ONLINE_SERVER?'🔌 Conectando con el servidor… la primera vez del día puede tardar hasta 1 minuto.':'🔌 Conectando con el servidor…');onWakeT=setInterval(()=>{if(!O.net||O.net.connected){clearInterval(onWakeT);if($('onErr').textContent.startsWith('🔌'))onErr('✅ ¡Servidor listo! Crea una sala o únete con un código.');}},500);}
 
 /* ---- pantalla ONLINE ---- */
 function openOnline(){
   show('sOnline');if(G.mode!=='demo')startDemo();
   $('onName').value=SAVE.name||'';onErr(onlineAvailable()?'':'El modo online no está disponible.');if(onlineAvailable()){try{onlineConnect();}catch(e){}onWake();}
-  $('onCreate').disabled=$('onJoin').disabled=!onlineAvailable();buildOnGrid();
+  $('onCreate').disabled=$('onJoin').disabled=$('onBrowse').disabled=!onlineAvailable();document.querySelectorAll('.onQk .btn').forEach(b=>b.disabled=!onlineAvailable());buildOnGrid();
 }
 function buildOnGrid(){const g=$('onGrid');g.innerHTML='';CHARS.forEach((ch,i)=>{const b=document.createElement('button');b.className='th'+(i===SAVE.p1.c?' s1':'');b.innerHTML='<img src="'+THUMB[ch.key]+'" alt=""><span>'+ch.name+'</span><b class="tel">'+ELEM[ch.el].ic+'</b>';b.style.setProperty('--ec',ELEM[ch.el].glow);if(ch.fil)b.querySelector('img').style.filter=ch.fil;if(!unlocked(ch))b.classList.add('lock');b.addEventListener('click',()=>{if(!unlocked(ch))return;SAVE.p1.c=i;persist();SFX.ui();buildOnGrid();});g.appendChild(b);});
   $('onMe').textContent=CHARS[SAVE.p1.c].name+' · '+CHARS[SAVE.p1.c].title;}
-async function onlineCreate(){
+async function onlineCreate(opt){opt=opt&&opt.pub!=null?opt:{};
   SFX.ui();tryFullscreen();onErr(O.net&&!O.net.connected?'🔌 Conectando y creando la sala…':'Creando sala…');
   try{onlineConnect();let code=genCode();for(let i=0;i<6;i++){const ex=await withTO(O.net.get(ON_ROOT+code+'/players'));if(!ex)break;code=genCode();}
-    O.code=code;await withTO(O.net.set(rp(),{created:O.net.TS,phase:'lobby',stage:SAVE.stage,players:{[O.uid]:myInfo()}}));enterLobby();}
+    O.code=code;await withTO(O.net.set(rp(),{created:O.net.TS,phase:'lobby',stage:SAVE.stage,pub:!!opt.pub,quick:!!opt.quick,max:opt.max||ON_MAX,players:{[O.uid]:myInfo()}}));enterLobby();}
   catch(e){console.warn(e);O.code=null;onErr('No se pudo conectar con el servidor. Revisa tu internet.');}
 }
-async function onlineJoin(){
-  SFX.ui();tryFullscreen();const code=$('onCode').value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+async function onlineJoin(ev,codeIn,quiet){
+  SFX.ui();tryFullscreen();const code=(codeIn||$('onCode').value).toUpperCase().replace(/[^A-Z0-9]/g,'');
   if(code.length!==4)return onErr('El código de la sala tiene 4 letras.');
   onErr('Buscando sala '+code+'…');
   try{onlineConnect();const room=await withTO(O.net.get(ON_ROOT+code));
     const n=room&&room.players?Object.keys(room.players).length:0;
-    if(!n)return onErr('No existe la sala '+code+'.');
-    if(room.phase!=='lobby')return onErr('En esa sala ya empezó la partida.');
-    if(n>=ON_MAX)return onErr('La sala está llena (4/4).');
-    O.code=code;await withTO(O.net.set(rp('players/'+O.uid),myInfo()));enterLobby();}
-  catch(e){console.warn(e);O.code=null;onErr('No se pudo conectar con el servidor. Revisa tu internet.');}
+    if(!n){if(!quiet)onErr('No existe la sala '+code+'.');return false;}
+    if(room.phase!=='lobby'){if(!quiet)onErr('En esa sala ya empezó la partida.');return false;}
+    if(n>=(room.max||ON_MAX)){if(!quiet)onErr('La sala está llena.');return false;}
+    O.code=code;await withTO(O.net.set(rp('players/'+O.uid),myInfo()));enterLobby();return true;}
+  catch(e){console.warn(e);O.code=null;onErr('No se pudo conectar con el servidor. Revisa tu internet.');return null;}
 }
+/* ---- partida rápida y lista de salas públicas (en samuraiFlash/rooms/LIST) ---- */
+const LISTP=ON_ROOT+'LIST';
+function freshList(L){const now=sNow();return Object.entries(L||{}).filter(([c,x])=>x&&typeof x==='object'&&/^[A-Z0-9]{4}$/.test(c)&&x.n>0&&x.n<(x.m||ON_MAX)&&now-(x.t||0)<75000);}
+async function onlineQuick(m){m=m|0||2;
+  SFX.ui();tryFullscreen();onErr('⚡ Buscando partida de '+m+' jugadores…');
+  try{onlineConnect();const L=await withTO(O.net.get(LISTP));
+    const c=freshList(L).filter(([,x])=>(x.m||ON_MAX)===m).sort((a,b)=>((b[1].q|0)-(a[1].q|0))||(b[1].n-a[1].n));
+    for(const [code] of c){const r=await onlineJoin(null,code,true);if(r)return;if(r===null)return;}
+    onErr('⚡ No hay nadie esperando: creo una sala y te aviso cuando llegue un rival.');await onlineCreate({pub:true,quick:true,max:m});}
+  catch(e){console.warn(e);onErr('No se pudo conectar con el servidor. Revisa tu internet.');}
+}
+let SALOFF=null;
+function openSalas(){SFX.ui();onErr('');show('sSalas');try{onlineConnect();}catch(e){}if(SALOFF)SALOFF();$('salList').innerHTML='<div class="salEmpty">Buscando salas…</div>';
+  SALOFF=O.net.on(LISTP,renderSalas);if(G.mode!=='demo')startDemo();}
+function closeSalas(){if(SALOFF){SALOFF();SALOFF=null;}}
+let SALM=0,SALL=null;
+function renderSalas(L){if(L!==undefined)SALL=L;const c=freshList(SALL).filter(([,x])=>!SALM||(x.m||ON_MAX)===SALM).sort((a,b)=>b[1].n-a[1].n);
+  if(!c.length){$('salList').innerHTML='<div class="salEmpty">'+(SALM?'No hay partidas de '+SALM+' esperando ahora.':'No hay salas abiertas ahora.')+' ¡Crea una y espera a tus rivales!</div>';return;}
+  $('salList').innerHTML=c.map(([code,x])=>{const ch=CHARS[x.c]||CHARS[0];return '<div class="salR"><img src="'+THUMB[ch.key]+'" alt=""><div><b>Sala de '+esc(x.h)+(x.q?' ⚡':'')+'</b><i>'+x.n+'/'+(x.m||ON_MAX)+' jugadores · partida de '+(x.m||ON_MAX)+' · '+esc(STAGES[x.s|0]?STAGES[x.s|0].name:'')+'</i></div><button class="btn small blue" data-c="'+code+'">UNIRSE</button></div>';}).join('');
+  $('salList').querySelectorAll('button').forEach(b=>b.addEventListener('click',async()=>{const r=await onlineJoin(null,b.dataset.c);if(r)closeSalas();}));}
+let LISTLAST={n:0,t:0};
+function publishRoom(force){const v=O.room;if(!O.host||!v||!v.pub||!O.code)return;
+  if(v.phase!=='lobby'){O.net.remove(LISTP+'/'+O.code);LISTLAST={n:0,t:0};return;}
+  const ids=playerIds(v),h=v.players[ids[0]]||{};
+  if(!force&&LISTLAST.n===ids.length&&Date.now()-LISTLAST.t<25000)return;
+  LISTLAST={n:ids.length,t:Date.now()};O.net.onDisc(LISTP+'/'+O.code);
+  O.net.set(LISTP+'/'+O.code,{h:String(h.name||'Samurái').slice(0,10),c:h.c|0,n:ids.length,m:v.max||ON_MAX,s:v.stage|0,q:v.quick?1:0,t:O.net.TS});}
+setInterval(()=>{if(O.view==='lobby')publishRoom(true);},25000);
+let QT=null,QAT=0;
+function quickTick(){const v=O.room;if(!v||v.phase!=='lobby'||!O.host||!v.quick||playerIds(v).length<(v.max||2)){clearInterval(QT);QT=null;return;}
+  const left=Math.ceil((QAT-Date.now())/1000);$('lbInfo').textContent='⚡ ¡Están todos! La partida empieza en '+Math.max(0,left)+'…';if(left<=0){clearInterval(QT);QT=null;hostStart();}}
 function enterLobby(){
   onErr('');O.net.onDisc(rp('players/'+O.uid));if(O.off)O.off();
   O.view='lobby';O.round=null;O.out=null;show('sLobby');$('lbCode').textContent=O.code;
@@ -1415,7 +1465,7 @@ function onRoom(v){
 }
 function renderLobby(){
   const v=O.room,ids=playerIds(v),P=v.players;let h='';
-  for(let i=0;i<ON_MAX;i++){const id=ids[i];
+  for(let i=0;i<(v.max||ON_MAX);i++){const id=ids[i];
     if(id){const p=P[id],ch=CHARS[p.c]||CHARS[0];h+='<div class="lbP'+(id===O.uid?' me':'')+'"><img src="'+THUMB[ch.key]+'" alt=""><b>'+esc(p.name)+'</b><i>'+esc(ch.name)+(i===0?' · anfitrión':'')+(id===O.uid?' · tú':'')+'</i></div>';}
     else h+='<div class="lbP empty"><div class="lbE">?</div><b>Libre</b><i>esperando…</i></div>';}
   $('lbList').innerHTML=h;
@@ -1424,13 +1474,19 @@ function renderLobby(){
   $('lbStart').style.display=O.host?'':'none';$('lbStart').disabled=ids.length<2;
   $('lbInfo').textContent=O.host?(ids.length<2?'Necesitas al menos 2 jugadores para empezar.':ids.length+' jugadores listos. ¡Pulsa COMENZAR!'):'Esperando a que el anfitrión empiece la partida…';
   if(G.stage!==(v.stage|0))setStage(v.stage|0);
+  if(v.pub)publishRoom(false);
+  if(v.quick){$('lbStart').style.display='none';
+    const need=v.max||ON_MAX;
+    if(ids.length<need)$('lbInfo').textContent='⚡ Partida rápida de '+need+': '+ids.length+'/'+need+' jugadores. Esperando…';
+    else if(!O.host)$('lbInfo').textContent='⚡ ¡Están todos! La partida empieza en unos segundos…';
+    else if(!QT){QAT=Date.now()+3000;QT=setInterval(quickTick,250);quickTick();}}
 }
 function newRound(n,ids,first,k){return {n,k,ids,first:!!first,t0:sNow()+(first?700:350),w:Math.round(randWait()*1000)/1000};}
-function hostStart(){if(!O.host)return;SFX.ui();const ids=playerIds(O.room).slice(0,ON_MAX);if(ids.length<2)return;const n=((O.room.round&&O.room.round.n)||0)+1;
+function hostStart(){if(!O.host)return;if(O.room&&O.room.pub)O.net.remove(LISTP+'/'+O.code);LISTLAST={n:0,t:0};SFX.ui();const ids=playerIds(O.room).slice(0,ON_MAX);if(ids.length<2)return;const n=((O.room.round&&O.room.round.n)||0)+1;
   O.net.update(rp(),{phase:'play',score:null,round:newRound(n,ids,true,1)});}
 function onlineLeave(){
   if(O.off){O.off();O.off=null;}
-  if(O.net&&O.code){const v=O.room,others=v&&v.players?Object.keys(v.players).filter(i=>i!==O.uid):[];
+  if(O.net&&O.code){if(O.host&&O.room&&O.room.pub){O.net.cancelDisc(LISTP+'/'+O.code);O.net.remove(LISTP+'/'+O.code);}LISTLAST={n:0,t:0};const v=O.room,others=v&&v.players?Object.keys(v.players).filter(i=>i!==O.uid):[];
     O.net.cancelDisc(rp('players/'+O.uid));if(!others.length)O.net.remove(rp());else O.net.remove(rp('players/'+O.uid));}
   O.code=null;O.room=null;O.round=null;O.out=null;O.view='none';
   if(G.mode==='online'){G.mode='demo';G.pl=[];}
@@ -1605,7 +1661,12 @@ function drawOnlineTags(){
 $('mOnline').addEventListener('click',()=>{SFX.ui();openOnline();});
 $('onName').addEventListener('input',()=>{SAVE.name=$('onName').value.replace(/[<>]/g,'').slice(0,10);persist();});
 $('onCode').addEventListener('input',()=>{$('onCode').value=$('onCode').value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);});
-$('onCreate').addEventListener('click',onlineCreate);
+$('onCreate').addEventListener('click',()=>onlineCreate({}));
+document.querySelectorAll('.onQk .btn').forEach(b=>b.addEventListener('click',()=>onlineQuick(+b.dataset.q)));
+document.querySelectorAll('.salSz .btn').forEach(b=>b.addEventListener('click',()=>{SFX.ui();SALM=+b.dataset.m;document.querySelectorAll('.salSz .btn').forEach(x=>x.classList.toggle('sel',x===b));$('salCreate').textContent='CREAR SALA DE '+(SALM||4);renderSalas();}));
+$('onBrowse').addEventListener('click',openSalas);
+$('salCreate').addEventListener('click',async()=>{closeSalas();await onlineCreate({pub:true,max:SALM||ON_MAX});});
+$('salBack').addEventListener('click',()=>{SFX.ui();closeSalas();openOnline();});
 $('onJoin').addEventListener('click',onlineJoin);
 $('onCode').addEventListener('keydown',e=>{if(e.key==='Enter')onlineJoin();});
 $('lbStart').addEventListener('click',hostStart);

@@ -118,7 +118,11 @@ setInterval(() => {
   for (const ws of clientes) { if (!ws.vivo) { ws.terminate(); continue; } ws.vivo = false; try { ws.ping(); } catch (_) {} }
   const salas = leer(partes(RAIZ)); const ahora = Date.now();
   if (esObj(salas)) for (const c in salas) {
-    const s = salas[c]; const sinJugadores = !esObj(s) || !esObj(s.players) || !Object.keys(s.players).length;
+    const s = salas[c];
+    if (c === "LIST") {                      // lista de salas públicas: quita las que ya no existen o no se renuevan
+      if (esObj(s)) for (const k in s) if (!esObj(salas[k]) || ahora - ((s[k] && s[k].t) || 0) > 120000) { const kk = partes(RAIZ + "/LIST/" + k); borrar(kk); cambio(kk); }
+      continue;
+    } const sinJugadores = !esObj(s) || !esObj(s.players) || !Object.keys(s.players).length;
     if (sinJugadores || ahora - (s.created || ahora) > VIDA_SALA) { const k = partes(RAIZ + "/" + c); borrar(k); cambio(k); }
   }
 }, 30000);
