@@ -46,4 +46,4 @@ Edita `index.html`, sube `versionCode` y `versionName` en `app-android/android/a
 
 ## Servidor del modo en línea
 
-El online (2 a 4 jugadores con código de sala) usa un servidor propio en la carpeta `servidor/` (Node + WebSocket), igual que Leyendas del Puño. Se publica gratis en Render con el archivo `render.yaml` (New → Blueprint → este repositorio). El juego se conecta a `wss://samurai-flash-servidor.onrender.com`.
+El online (2 a 4 jugadores con código de sala) usa un servidor propio en la carpeta `servidor/` (Node + WebSocket), igual que Leyendas del Puño. Se publica gratis en Render con el archivo `render.yaml` (New → Blueprint → este repositorio). Por defecto el juego usa Firebase (samurai-flash-d276b); para usar este servidor abre el juego con `?server=wss://TU-SERVICIO.onrender.com`.
