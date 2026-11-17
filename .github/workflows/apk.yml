@@ -3,6 +3,8 @@ name: Compilar APK
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'descargar/**'
   workflow_dispatch:
 
 permissions:
@@ -62,3 +64,14 @@ jobs:
               --notes "APK para instalar directo en Android. Se vuelve a generar con cada cambio en main. Compilado desde ${GITHUB_SHA::7}." \
               --target "$GITHUB_SHA"
           fi
+
+      - name: Copiar APK a GitHub Pages (carpeta descargar)
+        working-directory: .
+        run: |
+          git fetch origin main
+          git checkout -B pages-apk origin/main
+          cp samurai-flash.apk descargar/samurai-flash.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add descargar/samurai-flash.apk
+          git diff --cached --quiet || (git commit -m "APK actualizado [skip ci]" && git push origin HEAD:main)
