@@ -279,6 +279,15 @@ html,body,.btn,.ar,.onR input,#pauseBtn,#onQuit{font-family:"Trebuchet MS","Aria
 @keyframes cnSun{from{opacity:0;transform:translateY(30%)}to{opacity:1;transform:translateY(0)}}
 @keyframes cnFall{to{transform:translateY(110vh) rotate(720deg)}}
 @keyframes cnShake{0%,100%{transform:none}20%{transform:translate(-8px,4px)}40%{transform:translate(7px,-5px)}60%{transform:translate(-6px,3px)}80%{transform:translate(5px,-2px)}}
+#sMenu .row{flex-wrap:wrap;justify-content:center;gap:6px}
+@media (max-height:520px){
+ #sMenu{gap:min(10px,1.6vh);padding-top:6px;padding-bottom:6px}
+ #sMenu .title .t1{font-size:min(10vw,15vh);-webkit-text-stroke-width:2px}
+ #sMenu .title .t2{font-size:min(8.6vw,13vh);letter-spacing:8px;-webkit-text-stroke-width:2px}
+ #sMenu .tag.big{font-size:min(2.6vw,4vh)}
+ #bPlay{font-size:min(4.2vw,7vh);padding:min(12px,2vh) 44px}
+ #sMenu .btn.small{padding:min(8px,1.6vh) 12px;font-size:min(13px,3.6vh)}
+}
 </style>
 </head>
 <body>
@@ -308,8 +317,6 @@ html,body,.btn,.ar,.onR input,#pauseBtn,#onQuit{font-family:"Trebuchet MS","Aria
     <div class="row">
       <button class="btn small alt" data-go="progress">PROGRESO</button>
       <button class="btn small alt" data-go="how">CÓMO JUGAR</button>
-    </div>
-    <div class="row">
       <button class="btn small alt" id="musBtn">MÚSICA: SÍ</button>
       <button class="btn small alt" id="sfxBtn">SONIDO: SÍ</button>
       <button class="btn small alt" id="vibBtn">VIBRACIÓN: SÍ</button>
