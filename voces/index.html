@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Samurai Flash · Voces</title>
+<style>
+:root{--bg:#22104a;--card:#3d2478;--ink:#fff;--gold:#ffd23f}
+body{margin:0;background:radial-gradient(circle at 50% 0,#4a2a8a,#140c1e);background-color:#140c1e;color:var(--ink);font-family:"Trebuchet MS",system-ui,sans-serif;padding:16px}
+h1{text-align:center;color:var(--gold);margin:4px 0 2px;font-size:26px;text-shadow:0 3px 0 #2a0f3a}
+p.sub{text-align:center;margin:0 0 12px;color:#e8dcff;font-size:14px}
+.box{max-width:680px;margin:0 auto 12px;background:linear-gradient(var(--card),var(--bg));border:4px solid #120624;border-radius:18px;padding:12px}
+label{font-weight:800;font-size:14px}select{width:100%;margin-top:6px;padding:8px;border-radius:10px;font-size:15px}
+.line{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:2px dashed rgba(255,255,255,.12)}
+.line:first-of-type{border-top:0}
+.who{flex:none;width:96px;font-weight:900;font-size:13px}.who small{display:block;font-weight:700;color:#cdbfff;font-size:11px}
+.txt{flex:1;font-size:15px;line-height:1.35}
+button{font:900 15px "Trebuchet MS",sans-serif;border:3px solid #120624;border-radius:14px;padding:8px 12px;cursor:pointer;background:linear-gradient(#ffe066,#ff9f1a);color:#3a1a00;box-shadow:0 3px 0 #120624}
+button.play{flex:none;width:46px;height:46px;padding:0;font-size:18px}
+.big{display:block;width:100%;margin-top:10px;font-size:18px;background:linear-gradient(#8af07a,#2fb84a);color:#fff}
+.stop{background:linear-gradient(#9d8bf5,#6450d0);color:#fff}
+.warn{color:#ffb0a0;font-weight:800;text-align:center}
+</style></head><body>
+<h1>🎙️ Voces de prueba</h1>
+<p class="sub">Así sonaría la voz del teléfono en las escenas del modo historia. Cada personaje tiene su tono.</p>
+<div class="box"><label>Voz del teléfono<select id="voz"></select></label><p class="warn" id="aviso" hidden></p></div>
+<div class="box" id="lista"></div>
+<div class="box"><button class="big" id="todo">▶ Escuchar la escena completa</button><button class="big stop" id="parar">⏹ Parar</button></div>
+<script>
+const P={
+ Narrador:{pitch:1,rate:0.95,t:'la historia'},
+ Usagi:{pitch:1.6,rate:1.1,t:'la Coneja Violeta'},
+ 'Shogun Oscuro':{pitch:0.55,rate:0.85,t:'el Jefe Final'},
+ Karasu:{pitch:0.8,rate:1.15,t:'el Cuervo de la Tormenta'},
+ Goro:{pitch:0.3,rate:0.8,t:'el Jabalí Oni'},
+ Okami:{pitch:0.6,rate:0.9,t:'el Lobo Carmesí'}
+};
+const L=[
+ ['Narrador','Hace mucho tiempo, en la tierra de los samuráis animales, la Campana del Amanecer sonaba cada mañana para despertar al sol.'],
+ ['Shogun Oscuro','¡Ja, ja, ja! ¡Soy el Shogun Oscuro! Me llevo la campana a mi castillo. ¡Nunca más saldrá el sol!'],
+ ['Usagi','¡No te preocupes! Venceré a todos los guardianes y traeré la campana de vuelta. ¡Que empiece la aventura!'],
+ ['Karasu','¡Kraa, kraa! Soy Karasu, el Cuervo de la Tormenta. ¡Mis plumas azules son más rápidas que un rayo!'],
+ ['Goro','¡Grrr! Soy Goro, el Jabalí Oni. ¡Cuando me enojo, hasta las montañas tiemblan!'],
+ ['Okami','Auuuuu... Soy Okami, el Lobo Carmesí. Nadie ha escapado nunca de mis ojos rojos.']
+];
+const syn=window.speechSynthesis,sel=document.getElementById('voz');let voces=[];
+function cargar(){if(!syn)return;voces=syn.getVoices().filter(v=>/^es/i.test(v.lang));const prev=sel.value;sel.innerHTML='';voces.forEach((v,i)=>{const o=document.createElement('option');o.value=i;o.textContent=v.name+' ('+v.lang+')';sel.appendChild(o);});
+ const pref=voces.findIndex(v=>/es[-_](CL|419|MX|US|AR)/i.test(v.lang));if(prev)sel.value=prev;else if(pref>=0)sel.value=pref;
+ const a=document.getElementById('aviso');if(!voces.length){a.hidden=false;a.textContent='Tu navegador no tiene voces en español. Ábrelo en Chrome en el teléfono.';}else a.hidden=true;}
+if(!syn){const a=document.getElementById('aviso');a.hidden=false;a.textContent='Este navegador no puede hablar. Ábrelo en Chrome en el teléfono.';}else{cargar();syn.onvoiceschanged=cargar;}
+function decir(who,txt,fin){if(!syn)return;const u=new SpeechSynthesisUtterance(txt),c=P[who];u.lang='es-ES';const v=voces[+sel.value];if(v){u.voice=v;u.lang=v.lang;}u.pitch=c.pitch;u.rate=c.rate;if(fin)u.onend=fin;syn.speak(u);}
+const box=document.getElementById('lista');
+L.forEach(([w,t])=>{const d=document.createElement('div');d.className='line';d.innerHTML='<button class="play" aria-label="Escuchar">▶</button><div class="who">'+w+'<small>'+P[w].t+'</small></div><div class="txt"></div>';d.querySelector('.txt').textContent=t;d.querySelector('button').onclick=()=>{syn&&syn.cancel();decir(w,t);};box.appendChild(d);});
+document.getElementById('todo').onclick=()=>{if(!syn)return;syn.cancel();let i=0;const sig=()=>{if(i>=L.length)return;const [w,t]=L[i++];decir(w,t,()=>setTimeout(sig,350));};sig();};
+document.getElementById('parar').onclick=()=>syn&&syn.cancel();
+</script></body></html>
