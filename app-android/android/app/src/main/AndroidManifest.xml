@@ -36,6 +36,13 @@
         </provider>
     </application>
 
+    <!-- motor de voz del teléfono (Android 11+) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
