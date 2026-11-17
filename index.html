@@ -972,7 +972,7 @@ function render(ts){
     if(G.state==='signal')drawSignal();
   }
   ctx.restore();
-  if(G.bars>0.01){const h=G.bars*14;ctx.fillStyle='#000';ctx.fillRect(0,0,W,h);ctx.fillRect(0,H-h,W,h);}
+  if(G.bars>0.01){const h=G.bars*22,hb=G.bars*Math.max(0,H-GROUND-6);ctx.fillStyle='#000';ctx.fillRect(0,0,W,h);ctx.fillRect(0,H-hb,W,hb);}
   if(G.flash>0){ctx.globalAlpha=Math.min(1,G.flash);ctx.fillStyle=G.flashCol;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;}
   if(G.trans){const k=G.trans.t<0.25?G.trans.t/0.25:Math.max(0,1-(G.trans.t-0.25)/0.25);ctx.globalAlpha=k;ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;}
 }
