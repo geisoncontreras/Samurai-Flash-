@@ -1,0 +1,8 @@
+{
+  "appId": "com.samuraiflash.juego",
+  "appName": "Samurai Flash",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#140c1e"
+  }
+}

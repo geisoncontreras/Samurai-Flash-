@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Samurai Flash</string>
+    <string name="title_activity_main">Samurai Flash</string>
+    <string name="package_name">com.samuraiflash.juego</string>
+    <string name="custom_url_scheme">com.samuraiflash.juego</string>
+</resources>
