@@ -5,6 +5,11 @@ Todo el juego está en un solo archivo HTML, sin instalar nada.
 
 **Jugar en el navegador:** https://geisoncontreras.github.io/samurai-flash-/
 
+## Instalar en Android (APK)
+Descarga el APK: https://github.com/geisoncontreras/samurai-flash-/releases/download/apk/samurai-flash.apk
+
+Ábrelo en el teléfono y, si Android lo pide, permite "Instalar apps desconocidas" para tu navegador o el administrador de archivos. El APK se vuelve a compilar solo (GitHub Actions) cada vez que cambia `main`.
+
 ## Cómo jugar
 1. **Respira:** antes de cada ronda mantén presionada tu mitad de la pantalla. La barra sube y baja; suéltala en el punto más alto para tener más poder.
 2. **Espera la señal:** aparece en un momento aleatorio. Si tocas antes, pierdes la ronda.
