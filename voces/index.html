@@ -19,27 +19,20 @@ button.play{flex:none;width:46px;height:46px;padding:0;font-size:18px}
 .warn{color:#ffb0a0;font-weight:800;text-align:center}
 </style></head><body>
 <h1>🎙️ Voces de prueba</h1>
-<p class="sub">Así sonaría la voz del teléfono en las escenas del modo historia. Cada personaje tiene su tono.</p>
+<p class="sub">Son las 17 frases de las escenas, en orden. Así sonaría la voz del teléfono en las escenas del modo historia. Cada personaje tiene su tono.</p>
 <div class="box"><label>Voz del teléfono<select id="voz"></select></label><p class="warn" id="aviso" hidden></p></div>
 <div class="box" id="lista"></div>
-<div class="box"><button class="big" id="todo">▶ Escuchar la escena completa</button><button class="big stop" id="parar">⏹ Parar</button></div>
+<div class="box"><div id="num" style="text-align:center;font:900 54px 'Trebuchet MS';color:#ffd23f;min-height:62px"></div><button class="big" id="todo">▶ Escuchar todas (para grabar)</button><button class="big stop" id="parar">⏹ Parar</button></div>
 <script>
 const P={
  Narrador:{pitch:1,rate:0.95,t:'la historia'},
- Usagi:{pitch:1.6,rate:1.1,t:'la Coneja Violeta'},
+ Usagi:{pitch:1.6,rate:1.1,t:'tu samurái'},
  'Shogun Oscuro':{pitch:0.55,rate:0.85,t:'el Jefe Final'},
  Karasu:{pitch:0.8,rate:1.15,t:'el Cuervo de la Tormenta'},
  Goro:{pitch:0.3,rate:0.8,t:'el Jabalí Oni'},
  Okami:{pitch:0.6,rate:0.9,t:'el Lobo Carmesí'}
 };
-const L=[
- ['Narrador','Hace mucho tiempo, en la tierra de los samuráis animales, la Campana del Amanecer sonaba cada mañana para despertar al sol.'],
- ['Shogun Oscuro','¡Ja, ja, ja! ¡Soy el Shogun Oscuro! Me llevo la campana a mi castillo. ¡Nunca más saldrá el sol!'],
- ['Usagi','¡No te preocupes! Venceré a todos los guardianes y traeré la campana de vuelta. ¡Que empiece la aventura!'],
- ['Karasu','¡Kraa, kraa! Soy Karasu, el Cuervo de la Tormenta. ¡Mis plumas azules son más rápidas que un rayo!'],
- ['Goro','¡Grrr! Soy Goro, el Jabalí Oni. ¡Cuando me enojo, hasta las montañas tiemblan!'],
- ['Okami','Auuuuu... Soy Okami, el Lobo Carmesí. Nadie ha escapado nunca de mis ojos rojos.']
-];
+const L=[["Narrador", "Hace mucho tiempo, en la tierra de los samuráis animales, la Campana del Amanecer sonaba cada mañana para despertar al sol."], ["Shogun Oscuro", "¡Ja, ja, ja! ¡Soy el Shogun Oscuro! Me llevo la campana a mi castillo. ¡Nunca más saldrá el sol!"], ["Narrador", "El cielo se puso oscuro... y todos los samuráis se quedaron muy tristes."], ["Usagi", "¡No te preocupes! Venceré a todos los guardianes y traeré la campana de vuelta. ¡Que empiece la aventura!"], ["Karasu", "¡Kraa, kraa! Soy Karasu, el Cuervo de la Tormenta, primer general del Shogun. ¡Mis plumas azules son más rápidas que un rayo!"], ["Usagi", "¡Pues yo soy más rápido que tus plumas! ¡En guardia!"], ["Goro", "¡GRRR! Soy Goro, el Jabalí Oni. ¡Cuando me enojo, hasta las montañas tiemblan!"], ["Usagi", "Ser fuerte no basta, Goro. ¡Hay que ser veloz!"], ["Okami", "Auuuuu... Soy Okami, el Lobo Carmesí. Nadie ha escapado nunca de mis ojos rojos."], ["Usagi", "¡Hoy será la primera vez! Después de ti, solo queda el Shogun."], ["Shogun Oscuro", "¡Venciste a mis tres generales! Pero yo soy el samurái más rápido del mundo. ¡La campana se queda conmigo!"], ["Usagi", "¡Por el sol y por todos mis amigos! Respiro hondo... ¡y a luchar!"], ["Shogun Oscuro", "¡Nooo! No puede ser... ¡Eres el samurái más rápido de todos!"], ["Narrador", "¡DING, DONG! La Campana del Amanecer volvió a sonar... ¡y el sol salió otra vez!"], ["Narrador", "Todos los samuráis celebraron con una gran fiesta de fuegos artificiales."], ["Shogun Oscuro", "Perdón por robar la campana... ¿Puedo ser tu amigo? Prometo portarme bien."], ["Usagi", "¡Claro que sí!  ¡Gracias por jugar a Samurai Flash! Fin."]];
 const syn=window.speechSynthesis,sel=document.getElementById('voz');let voces=[];
 function cargar(){if(!syn)return;voces=syn.getVoices().filter(v=>/^es/i.test(v.lang));const prev=sel.value;sel.innerHTML='';voces.forEach((v,i)=>{const o=document.createElement('option');o.value=i;o.textContent=v.name+' ('+v.lang+')';sel.appendChild(o);});
  const pref=voces.findIndex(v=>/es[-_](CL|419|MX|US|AR)/i.test(v.lang));if(prev)sel.value=prev;else if(pref>=0)sel.value=pref;
@@ -48,6 +41,6 @@ if(!syn){const a=document.getElementById('aviso');a.hidden=false;a.textContent='
 function decir(who,txt,fin){if(!syn)return;const u=new SpeechSynthesisUtterance(txt),c=P[who];u.lang='es-ES';const v=voces[+sel.value];if(v){u.voice=v;u.lang=v.lang;}u.pitch=c.pitch;u.rate=c.rate;if(fin)u.onend=fin;syn.speak(u);}
 const box=document.getElementById('lista');
 L.forEach(([w,t])=>{const d=document.createElement('div');d.className='line';d.innerHTML='<button class="play" aria-label="Escuchar">▶</button><div class="who">'+w+'<small>'+P[w].t+'</small></div><div class="txt"></div>';d.querySelector('.txt').textContent=t;d.querySelector('button').onclick=()=>{syn&&syn.cancel();decir(w,t);};box.appendChild(d);});
-document.getElementById('todo').onclick=()=>{if(!syn)return;syn.cancel();let i=0;const sig=()=>{if(i>=L.length)return;const [w,t]=L[i++];decir(w,t,()=>setTimeout(sig,350));};sig();};
+document.getElementById('todo').onclick=()=>{if(!syn)return;syn.cancel();let i=0;const num=document.getElementById('num');const sig=()=>{if(i>=L.length){num.textContent='✓';return;}const [w,t]=L[i++];num.textContent=i+' / '+L.length;decir(w,t,()=>setTimeout(sig,1500));};setTimeout(sig,1500);};
 document.getElementById('parar').onclick=()=>syn&&syn.cancel();
 </script></body></html>
