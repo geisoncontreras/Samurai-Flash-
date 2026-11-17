@@ -53,8 +53,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete apk --yes --cleanup-tag || true
-          gh release create apk samurai-flash.apk \
-            --title "Samurai Flash (APK de prueba)" \
-            --notes "APK para instalar directo en Android. Se vuelve a generar con cada cambio en main. Compilado desde ${GITHUB_SHA::7}." \
-            --target "$GITHUB_SHA"
+          if gh release view apk >/dev/null 2>&1; then
+            gh release upload apk samurai-flash.apk --clobber
+            gh release edit apk --notes "APK para instalar directo en Android. Se vuelve a generar con cada cambio en main. Compilado desde ${GITHUB_SHA::7}."
+          else
+            gh release create apk samurai-flash.apk \
+              --title "Samurai Flash (APK de prueba)" \
+              --notes "APK para instalar directo en Android. Se vuelve a generar con cada cambio en main. Compilado desde ${GITHUB_SHA::7}." \
+              --target "$GITHUB_SHA"
+          fi
