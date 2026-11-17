@@ -43,3 +43,7 @@ Identificador de la app: `com.samuraiflash.juego`. Si quieres otro, cámbialo an
 
 ## Actualizar el juego
 Edita `index.html`, sube `versionCode` y `versionName` en `app-android/android/app/build.gradle`, ejecuta `npm run sync` y vuelve a generar el .aab.
+
+## Servidor del modo en línea
+
+El online (2 a 4 jugadores con código de sala) usa un servidor propio en la carpeta `servidor/` (Node + WebSocket), igual que Leyendas del Puño. Se publica gratis en Render con el archivo `render.yaml` (New → Blueprint → este repositorio). El juego se conecta a `wss://samurai-flash-servidor.onrender.com`.

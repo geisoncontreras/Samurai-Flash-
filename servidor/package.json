@@ -1,0 +1,9 @@
+{
+  "name": "samurai-flash-servidor",
+  "version": "1.0.0",
+  "description": "Servidor del modo en línea de Samurai Flash (salas de 2 a 4 jugadores)",
+  "main": "servidor.js",
+  "scripts": { "start": "node servidor.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "ws": "8.18.0" }
+}

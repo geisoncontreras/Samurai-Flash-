@@ -1286,7 +1286,9 @@ const OT={intro:1.2,breath:5.0,ready:1.3};OT.bEnd=OT.intro+OT.breath;OT.rEnd=OT.
 const LOCALNET=/localnet/.test(location.search+location.hash);   // modo de prueba sin servidor (varias pestañas)
 const O={net:null,uid:'u'+Math.random().toString(36).slice(2,10),code:null,room:null,off:null,host:false,view:'none',round:null,out:null,mine:null,reacts:[],resolved:null,nextSent:null,endShown:false,quitArm:0};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function onlineAvailable(){return !!((typeof FIREBASE_CONFIG!=='undefined'&&FIREBASE_CONFIG)||LOCALNET);}
+/* servidor propio (WebSocket en Render, mismo método que Leyendas del Puño). Se puede cambiar con ?server=wss://... */
+const ONLINE_SERVER=(()=>{const m=/[?&#]server=([^&#]+)/.exec(location.search+location.hash);return m?decodeURIComponent(m[1]):'wss://samurai-flash-servidor.onrender.com';})();
+function onlineAvailable(){return !!(ONLINE_SERVER||(typeof FIREBASE_CONFIG!=='undefined'&&FIREBASE_CONFIG)||LOCALNET);}
 
 /* ---- conexión con Firebase ---- */
 function fbBackend(){
@@ -1299,6 +1301,26 @@ function fbBackend(){
     onDisc:p=>db.ref(p).onDisconnect().remove(),cancelDisc:p=>db.ref(p).onDisconnect().cancel()};
   db.ref('.info/serverTimeOffset').on('value',s=>{B.offset=s.val()||0;});
   db.ref('.info/connected').on('value',s=>{B.connected=!!s.val();});
+  return B;
+}
+/* ---- servidor propio por WebSocket ---- */
+function wsBackend(url){
+  const B={offset:0,connected:false,TS:{'.sv':'timestamp'}};
+  let ws=null,q=[],id=0,sid=0,retry=0;const wait=new Map(),subs=new Map(),disc=new Set();
+  const raw=m=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify(m));else q.push(m);};
+  const req=m=>new Promise((res,rej)=>{m.id=++id;wait.set(m.id,{res,rej});raw(m);});
+  function open(){try{ws=new WebSocket(url);}catch(e){setTimeout(open,3000);return;}
+    ws.onopen=()=>{B.connected=true;retry=0;const pend=q;q=[];for(const [k,x] of subs)raw({op:'on',p:x.p,sid:k});for(const p of disc)raw({op:'disc',p});pend.forEach(raw);};
+    ws.onmessage=e=>{let m;try{m=JSON.parse(e.data);}catch(_){return;}
+      if(m.op==='hola')B.offset=m.t-Date.now();
+      else if(m.op==='ok'||m.op==='res'){const w=wait.get(m.id);if(w){wait.delete(m.id);if(m.error)w.rej(new Error(m.error));else w.res(m.v===undefined?null:m.v);}}
+      else if(m.op==='val'){const x=subs.get(m.sid);if(x)x.cb(m.v);}};
+    ws.onclose=()=>{B.connected=false;ws=null;setTimeout(open,Math.min(5000,600*(++retry)));};
+    ws.onerror=()=>{};}
+  open();
+  Object.assign(B,{set:(p,v)=>req({op:'set',p,v}),update:(p,v)=>req({op:'update',p,v}),remove:p=>req({op:'remove',p}),get:p=>req({op:'get',p}),
+    on:(p,cb)=>{const k=++sid;subs.set(k,{p,cb});raw({op:'on',p,sid:k});return()=>{subs.delete(k);raw({op:'off',sid:k});};},
+    onDisc:p=>{disc.add(p);raw({op:'disc',p});return Promise.resolve();},cancelDisc:p=>{disc.delete(p);raw({op:'undisc',p});return Promise.resolve();}});
   return B;
 }
 /* ---- servidor de prueba local (pestañas del mismo navegador) ---- */
@@ -1330,29 +1352,32 @@ function localBackend(){
 }
 function onlineConnect(){
   if(O.net)return O.net;
-  if(typeof FIREBASE_CONFIG!=='undefined'&&FIREBASE_CONFIG){if(typeof firebase==='undefined')throw new Error('sin SDK');O.net=fbBackend();}
+  if(LOCALNET)O.net=localBackend();
+  else if(ONLINE_SERVER)O.net=wsBackend(ONLINE_SERVER);
+  else if(typeof FIREBASE_CONFIG!=='undefined'&&FIREBASE_CONFIG){if(typeof firebase==='undefined')throw new Error('sin SDK');O.net=fbBackend();}
   else O.net=localBackend();
   return O.net;
 }
 const sNow=()=>Date.now()+(O.net?O.net.offset:0);
 const rp=p=>ON_ROOT+O.code+(p?'/'+p:'');
-const withTO=(pr,ms)=>Promise.race([pr,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms||9000))]);
+const withTO=(pr,ms)=>Promise.race([pr,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms||(O.net&&!O.net.connected?75000:9000)))]);
 function genCode(){const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<4;i++)s+=A[Math.floor(Math.random()*A.length)];return s;}
 function myName(){return (SAVE.name||'').trim().slice(0,10)||'Samurái';}
 function myInfo(){return {name:myName(),c:SAVE.p1.c,k:SAVE.p1.k,e:SAVE.p1.e,j:O.net.TS};}
 function playerIds(v){const P=(v&&v.players)||{};return Object.keys(P).sort((a,b)=>((P[a].j||0)-(P[b].j||0))||(a<b?-1:1));}
 function onErr(t){$('onErr').textContent=t||'';}
+let onWakeT=null;function onWake(){clearInterval(onWakeT);if(!O.net||O.net.connected||LOCALNET)return;onErr('🔌 Conectando con el servidor… la primera vez del día puede tardar hasta 1 minuto.');onWakeT=setInterval(()=>{if(!O.net||O.net.connected){clearInterval(onWakeT);if($('onErr').textContent.startsWith('🔌'))onErr('✅ ¡Servidor listo! Crea una sala o únete con un código.');}},500);}
 
 /* ---- pantalla ONLINE ---- */
 function openOnline(){
   show('sOnline');if(G.mode!=='demo')startDemo();
-  $('onName').value=SAVE.name||'';onErr(onlineAvailable()?'':'El modo online se activará cuando el servidor (Firebase) esté configurado.');
+  $('onName').value=SAVE.name||'';onErr(onlineAvailable()?'':'El modo online no está disponible.');if(onlineAvailable()){try{onlineConnect();}catch(e){}onWake();}
   $('onCreate').disabled=$('onJoin').disabled=!onlineAvailable();buildOnGrid();
 }
 function buildOnGrid(){const g=$('onGrid');g.innerHTML='';CHARS.forEach((ch,i)=>{const b=document.createElement('button');b.className='th'+(i===SAVE.p1.c?' s1':'');b.innerHTML='<img src="'+THUMB[ch.key]+'" alt=""><span>'+ch.name+'</span><b class="tel">'+ELEM[ch.el].ic+'</b>';b.style.setProperty('--ec',ELEM[ch.el].glow);if(ch.fil)b.querySelector('img').style.filter=ch.fil;if(!unlocked(ch))b.classList.add('lock');b.addEventListener('click',()=>{if(!unlocked(ch))return;SAVE.p1.c=i;persist();SFX.ui();buildOnGrid();});g.appendChild(b);});
   $('onMe').textContent=CHARS[SAVE.p1.c].name+' · '+CHARS[SAVE.p1.c].title;}
 async function onlineCreate(){
-  SFX.ui();tryFullscreen();onErr('Creando sala…');
+  SFX.ui();tryFullscreen();onErr(O.net&&!O.net.connected?'🔌 Despertando el servidor y creando la sala… (hasta 1 minuto)':'Creando sala…');
   try{onlineConnect();let code=genCode();for(let i=0;i<6;i++){const ex=await withTO(O.net.get(ON_ROOT+code+'/players'));if(!ex)break;code=genCode();}
     O.code=code;await withTO(O.net.set(rp(),{created:O.net.TS,phase:'lobby',stage:SAVE.stage,players:{[O.uid]:myInfo()}}));enterLobby();}
   catch(e){console.warn(e);O.code=null;onErr('No se pudo conectar con el servidor. Revisa tu internet.');}

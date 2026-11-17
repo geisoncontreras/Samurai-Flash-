@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths-ignore:
       - 'descargar/**'
+      - 'servidor/**'
+      - 'voces/**'
+      - 'render.yaml'
   workflow_dispatch:
 
 permissions:
