@@ -1,5 +1,9 @@
 package com.samuraiflash.juego;
 
+import android.content.Context;
+import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
+import android.os.Build;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import com.getcapacitor.JSObject;
@@ -49,6 +53,27 @@ public class VozPlugin extends Plugin {
         JSObject r = new JSObject();
         r.put("ok", listo);
         call.resolve(r);
+    }
+
+    // chat de voz: que salga por el altavoz (no por el auricular de llamadas)
+    @PluginMethod
+    public void altavoz(PluginCall call) {
+        boolean on = Boolean.TRUE.equals(call.getBoolean("on", true));
+        try {
+            AudioManager am = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+            if (on) {
+                am.setMode(AudioManager.MODE_IN_COMMUNICATION);
+                if (Build.VERSION.SDK_INT >= 31) {
+                    for (AudioDeviceInfo d : am.getAvailableCommunicationDevices()) {
+                        if (d.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER) { am.setCommunicationDevice(d); break; }
+                    }
+                } else am.setSpeakerphoneOn(true);
+            } else {
+                if (Build.VERSION.SDK_INT >= 31) am.clearCommunicationDevice(); else am.setSpeakerphoneOn(false);
+                am.setMode(AudioManager.MODE_NORMAL);
+            }
+        } catch (Exception e) {}
+        call.resolve();
     }
 
     @PluginMethod

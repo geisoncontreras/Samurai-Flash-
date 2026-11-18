@@ -117,6 +117,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#fff;font
 .oc em.on{background:var(--gold);box-shadow:0 0 6px #ffd84a}
 #onQuit{position:absolute;z-index:4;top:max(6px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));font:bold 12px monospace;color:#fff;background:rgba(0,0,0,.5);border:2px solid #fff;padding:5px 9px;display:none;cursor:pointer}
 #onQuit.on{display:block}
+#vcBtn{position:fixed;z-index:60;top:max(6px,env(safe-area-inset-top));left:max(8px,env(safe-area-inset-left));font:800 12px "Trebuchet MS",sans-serif;color:#fff;background:rgba(0,0,0,.55);border:2px solid #fff;border-radius:10px;padding:5px 9px;display:none;cursor:pointer}
+#vcBtn.on{display:block}#vcBtn.live{border-color:#7dff8a;color:#7dff8a}#vcBtn.mute{border-color:#ff8a8a;color:#ff8a8a}
+#vcPanel{position:fixed;z-index:61;top:calc(max(6px,env(safe-area-inset-top)) + 36px);left:max(8px,env(safe-area-inset-left));width:min(300px,86vw);max-height:calc(100vh - 60px);overflow:auto;background:linear-gradient(#3d2478,#22104a);border:3px solid #120624;border-radius:14px;padding:8px;color:#fff;font:700 13px "Trebuchet MS",sans-serif;display:none}
+#vcPanel.on{display:block}#vcPanel h4{margin:0 0 6px;color:#ffd23f;font:900 15px "Trebuchet MS",sans-serif}#vcPanel p{margin:4px 0;font-size:12px;opacity:.85}
+#vcPanel .btn{width:100%;margin:3px 0;padding:6px 8px;font-size:12px}.vcR{display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px dashed rgba(255,255,255,.15)}.vcR span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.vcR i{font-style:normal;font-size:11px;opacity:.75}#vcPanel .vcR .btn{width:auto;flex:none;margin:0;padding:3px 8px;font-size:11px}
 #sOnline{gap:8px}
 .onWrap{display:flex;gap:10px;width:min(760px,100%);align-items:stretch}
 .onWrap .box{padding:8px 10px}
@@ -383,6 +388,7 @@ html,body,.btn,.ar,.onR input,#pauseBtn,#onQuit{font-family:"Trebuchet MS","Aria
   </div>
   <button id="pauseBtn" aria-label="Pausa">II</button>
   <button id="onQuit">SALIR</button>
+  <button id="vcBtn">🎙️ VOZ</button><div id="vcPanel"></div>
   <div id="loading"><div class="spl"><div class="kat k1"></div><div class="kat k2"></div><div class="sun"></div><div class="lt">SAMURAI</div><div class="lt l2">FLASH</div><div class="slash"></div></div><div class="lb"><div id="loadBar"></div></div><div class="lt2">Cargando...</div></div>
   <div id="rot">↻ Gira el teléfono para jugar en horizontal</div>
 
@@ -1669,7 +1675,7 @@ function onRoom(v){
   if(!O.code)return;
   O.room=v;
   if(!v||!v.players||!v.players[O.uid]){const was=O.view;onlineLeave();if(was!=='none'){openOnline();onErr('Saliste de la sala.');}return;}
-  const ids=playerIds(v);O.host=ids[0]===O.uid;
+  const ids=playerIds(v);O.host=ids[0]===O.uid;if(VC.on)vcReconcile();vcUI();
   if(v.phase==='lobby'){if(O.view!=='lobby'){hideGameUI();O.view='lobby';O.round=null;show('sLobby');if(G.mode!=='demo')startDemo();}renderLobby();return;}
   if(v.phase==='play'&&v.round&&Array.isArray(v.round.ids)&&v.round.t0){
     if((O.view==='results'||O.view==='tourb')&&O.round&&v.round.n===O.round.n){if(O.view==='tourb')tourOnBoard();return;}
@@ -1701,10 +1707,11 @@ function newRound(n,ids,first,k){return {n,k,ids,first:!!first,t0:sNow()+(first?
 function hostStart(){if(!O.host)return;if(O.room&&O.room.tour)return tourOnStart();if(O.room&&O.room.pub)O.net.remove(LISTP+'/'+O.code);LISTLAST={n:0,t:0};SFX.ui();const ids=playerIds(O.room).slice(0,ON_MAX);if(ids.length<2)return;const n=((O.room.round&&O.room.round.n)||0)+1;
   O.net.update(rp(),{phase:'play',score:null,round:newRound(n,ids,true,1)});}
 function onlineLeave(){
+  vcStop();VC.panel=false;
   if(O.off){O.off();O.off=null;}
   if(O.net&&O.code){if(O.host&&O.room&&O.room.pub){O.net.cancelDisc(LISTP+'/'+O.code);O.net.remove(LISTP+'/'+O.code);}LISTLAST={n:0,t:0};const v=O.room,others=v&&v.players?Object.keys(v.players).filter(i=>i!==O.uid):[];
     O.net.cancelDisc(rp('players/'+O.uid));if(!others.length)O.net.remove(rp());else O.net.remove(rp('players/'+O.uid));}
-  O.code=null;O.room=null;O.round=null;O.out=null;O.view='none';
+  O.code=null;O.room=null;O.round=null;O.out=null;O.view='none';vcUI();
   if(G.mode==='online'){G.mode='demo';G.pl=[];}
   hideGameUI();
 }
@@ -1869,6 +1876,70 @@ function onlineResults(){
   mkb('SALIR','alt',()=>{onlineLeave();goMenu();});
   show('sResults');
 }
+/* ---- chat de voz opcional (WebRTC entre teléfonos; las señales van por la sala en minúsculas) ---- */
+const VC={on:false,micOn:true,stream:null,sess:null,peers:{},muted:{},off:null,seen:{},list:{},retry:{},panel:false,code:null};
+const vcRoot=()=>ON_ROOT+String(VC.code||O.code).toLowerCase();
+const VC_ICE=[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302','stun:stun.cloudflare.com:3478']}];
+function vcAvail(){return !!(window.RTCPeerConnection&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);}
+async function vcStart(){if(VC.on||!O.code||!vcAvail())return;
+  try{VC.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});}
+  catch(e){toast('🎙️ Necesito permiso del micrófono para el chat de voz');return;}
+  if(!O.code){VC.stream.getTracks().forEach(t=>t.stop());return;}
+  VC.on=true;VC.micOn=true;VC.code=O.code;VC.sess=Math.random().toString(36).slice(2,9);VC.seen={};VC.list={};
+  try{const v=vozPlug();if(v)v.altavoz({on:true}).catch(()=>{});}catch(e){}
+  O.net.onDisc(vcRoot()+'/vc/'+O.uid);O.net.onDisc(vcRoot()+'/sig/'+O.uid);
+  await O.net.set(vcRoot()+'/vc/'+O.uid,VC.sess);
+  VC.off=O.net.on(vcRoot(),vcOnData);vcUI();}
+function vcStop(){if(!VC.on){vcUI();return;}
+  for(const id in VC.peers)vcClose(id);
+  try{VC.stream.getTracks().forEach(t=>t.stop());}catch(e){}VC.stream=null;
+  if(VC.off){VC.off();VC.off=null;}
+  if(O.net){const b=vcRoot();O.net.cancelDisc(b+'/vc/'+O.uid);O.net.cancelDisc(b+'/sig/'+O.uid);O.net.remove(b+'/vc/'+O.uid);O.net.remove(b+'/sig/'+O.uid);
+    if(!Object.keys(VC.list||{}).some(id=>id!==O.uid))O.net.remove(b);}
+  try{const v=vozPlug();if(v)v.altavoz({on:false}).catch(()=>{});}catch(e){}
+  VC.on=false;VC.code=null;VC.list={};vcUI();}
+function vcOnData(d){if(!VC.on)return;d=d||{};VC.list=d.vc||{};
+  const inbox=(d.sig&&d.sig[O.uid])||{};
+  for(const from in inbox){const m=inbox[from];if(!m||typeof m!=='object'||m.to!==VC.sess||m.s!==VC.list[from])continue;const k=from+':'+m.s+':'+m.k+':'+m.ms;if(VC.seen[k])continue;VC.seen[k]=1;vcSignal(from,m);}
+  vcReconcile();vcUI();}
+function vcReconcile(){if(!VC.on)return;const L=VC.list||{},P=(O.room&&O.room.players)||{};
+  for(const id in VC.peers){const p=VC.peers[id];if(!L[id]||L[id]!==p.rs||!P[id])vcClose(id);}
+  for(const id in L){if(id===O.uid||!P[id]||VC.peers[id])continue;if(O.uid<id&&!(VC.retry[id]>Date.now()))vcCall(id,L[id]);}}
+function vcMk(id,rs){const pc=new RTCPeerConnection({iceServers:VC_ICE});const p={pc,rs,au:null};VC.peers[id]=p;
+  VC.stream.getTracks().forEach(t=>pc.addTrack(t,VC.stream));
+  pc.ontrack=e=>{if(!p.au){p.au=new Audio();p.au.autoplay=true;p.au.setAttribute('playsinline','');}p.au.srcObject=e.streams[0]||new MediaStream([e.track]);p.au.muted=!!VC.muted[id];p.au.play().catch(()=>{});vcUI();};
+  pc.onconnectionstatechange=()=>{if(pc.connectionState==='failed'&&VC.peers[id]===p){vcClose(id);VC.retry[id]=Date.now()+4000;setTimeout(vcReconcile,4500);}vcUI();};
+  return p;}
+const vcGather=pc=>new Promise(r=>{if(pc.iceGatheringState==='complete')return r();const t=setTimeout(r,2500);pc.addEventListener('icegatheringstatechange',()=>{if(pc.iceGatheringState==='complete'){clearTimeout(t);r();}});});
+async function vcCall(id,rs){const p=vcMk(id,rs),pc=p.pc;
+  try{await pc.setLocalDescription(await pc.createOffer());await vcGather(pc);if(VC.peers[id]!==p)return;
+    O.net.set(vcRoot()+'/sig/'+id+'/'+O.uid,{k:'o',sdp:pc.localDescription.sdp,s:VC.sess,to:rs,ms:Date.now()});}catch(e){if(VC.peers[id]===p)vcClose(id);}}
+async function vcSignal(from,m){if(m.to!==VC.sess||m.s!==(VC.list||{})[from])return;
+  if(m.k==='o'){if(VC.peers[from])vcClose(from);const p=vcMk(from,m.s),pc=p.pc;
+    try{await pc.setRemoteDescription({type:'offer',sdp:m.sdp});await pc.setLocalDescription(await pc.createAnswer());await vcGather(pc);if(VC.peers[from]!==p)return;
+      O.net.set(vcRoot()+'/sig/'+from+'/'+O.uid,{k:'a',sdp:pc.localDescription.sdp,s:VC.sess,to:m.s,ms:Date.now()});}catch(e){if(VC.peers[from]===p)vcClose(from);}}
+  else if(m.k==='a'){const p=VC.peers[from];if(p&&p.pc.signalingState==='have-local-offer'){try{await p.pc.setRemoteDescription({type:'answer',sdp:m.sdp});}catch(e){}}}}
+function vcClose(id){const p=VC.peers[id];if(!p)return;delete VC.peers[id];try{p.pc.close();}catch(e){}if(p.au){try{p.au.pause();}catch(e){}p.au.srcObject=null;}}
+function vcMic(){VC.micOn=!VC.micOn;if(VC.stream)VC.stream.getAudioTracks().forEach(t=>t.enabled=VC.micOn);vcUI();}
+function vcMute(id){VC.muted[id]=!VC.muted[id];const p=VC.peers[id];if(p&&p.au)p.au.muted=VC.muted[id];vcUI();}
+function vcUI(){const b=$('vcBtn'),pn=$('vcPanel');if(!b)return;const show=!!O.code&&vcAvail();
+  b.classList.toggle('on',show);b.classList.toggle('live',VC.on&&VC.micOn);b.classList.toggle('mute',VC.on&&!VC.micOn);
+  const n=Object.values(VC.peers).filter(p=>p.pc.connectionState==='connected').length;
+  b.textContent=!VC.on?'🎙️ VOZ':(VC.micOn?'🎙️':'🔇')+' VOZ'+(n?' · '+n:'');
+  if(!show)VC.panel=false;pn.classList.toggle('on',VC.panel);if(!VC.panel)return;
+  const P=(O.room&&O.room.players)||{},ids=playerIds(O.room).filter(id=>id!==O.uid);let h='<h4>🎙️ CHAT DE VOZ</h4>';
+  if(!VC.on)h+='<p>Habla con los demás jugadores de la sala. Es opcional: actívalo solo si quieres.</p><button class="btn small gold" data-a="on">ACTIVAR CHAT DE VOZ</button>';
+  else{h+='<button class="btn small '+(VC.micOn?'green':'alt')+'" data-a="mic">'+(VC.micOn?'🎙️ MI MICRÓFONO: ENCENDIDO':'🔇 MI MICRÓFONO: APAGADO')+'</button>';
+    h+=ids.length?ids.map(id=>{const p=VC.peers[id],inV=!!VC.list[id],st=!inV?'sin voz':p&&p.pc.connectionState==='connected'?'conectado':'conectando…';
+      return '<div class="vcR"><span>'+esc(P[id].name)+'</span><i>'+st+'</i>'+(inV?'<button class="btn small '+(VC.muted[id]?'alt':'blue')+'" data-m="'+esc(id)+'">'+(VC.muted[id]?'🔇 SILENCIADO':'🔊 SILENCIAR')+'</button>':'')+'</div>';}).join(''):'<p>Aún no hay nadie más en la sala.</p>';
+    h+='<button class="btn small alt" data-a="off">QUITAR CHAT DE VOZ</button>';}
+  h+='<button class="btn small alt" data-a="close">CERRAR</button>';
+  pn.innerHTML=h;}
+['touchstart','mousedown','pointerdown'].forEach(t=>{$('vcBtn').addEventListener(t,e=>e.stopPropagation(),{passive:true});$('vcPanel').addEventListener(t,e=>e.stopPropagation(),{passive:true});});
+$('vcBtn').addEventListener('click',()=>{SFX.ui();VC.panel=!VC.panel;vcUI();});
+$('vcPanel').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;SFX.ui();const a=b.dataset.a;
+  if(a==='on')vcStart();else if(a==='off')vcStop();else if(a==='mic')vcMic();else if(a==='close'){VC.panel=false;vcUI();}else if(b.dataset.m)vcMute(b.dataset.m);});
+setInterval(()=>{if(VC.on)vcUI();},2000);
 /* ---- actualización automática (APK instalado fuera de la Play Store) ---- */
 const APPV='__VERSION__',UPD_BASE='https://geisoncontreras.github.io/Samurai-Flash-/descargar/';
 const UPD={pl:null,info:null,busy:false};
