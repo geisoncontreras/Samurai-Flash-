@@ -57,11 +57,14 @@ public class VozPlugin extends Plugin {
         String txt = call.getString("texto", "");
         float pitch = call.getFloat("tono", 1f);
         float rate = call.getFloat("velocidad", 1f);
+        float vol = Math.max(0f, Math.min(1f, call.getFloat("volumen", 1f)));
         tts.setPitch(Math.max(0.45f, pitch));
         tts.setSpeechRate(rate);
         String id = "v" + (n++);
         synchronized (pendientes) { pendientes.put(id, call); }
-        tts.speak(txt, TextToSpeech.QUEUE_FLUSH, null, id);
+        android.os.Bundle params = new android.os.Bundle();
+        params.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, vol);
+        tts.speak(txt, TextToSpeech.QUEUE_FLUSH, params, id);
     }
 
     @PluginMethod
