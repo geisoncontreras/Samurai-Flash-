@@ -339,6 +339,7 @@ html,body,.btn,.ar,.onR input,#pauseBtn,#onQuit{font-family:"Trebuchet MS","Aria
       <button class="btn small alt" id="musBtn">MÚSICA: SÍ</button>
       <button class="btn small alt" id="sfxBtn">SONIDO: SÍ</button>
       <button class="btn small alt" id="vibBtn">VIBRACIÓN: SÍ</button>
+      <button class="btn small alt" id="qBtn">⚡ CALIDAD: FLUIDA</button>
     </div>
   </div>
 
@@ -653,7 +654,7 @@ const RIVAL_TITLES=['Aprendiz','Guardiana','Monje','Cazador','Centinela','Vagabu
 
 /* ---------- guardado ---------- */
 const SKEY='samuraiFlash.save.v3';
-const DEF={roundsWon:0,matchesWon:0,duels:0,best:null,cpuBeaten:0,music:true,sfx:true,p1:{c:0,k:0,e:0},p2:{c:1,k:0,e:0},stage:0,cpuSel:0,h2h:[0,0],name:'',story:0,vib:true};
+const DEF={roundsWon:0,matchesWon:0,duels:0,best:null,cpuBeaten:0,music:true,sfx:true,p1:{c:0,k:0,e:0},p2:{c:1,k:0,e:0},stage:0,cpuSel:0,h2h:[0,0],name:'',story:0,vib:true,q:'fluido'};
 function clone(o){return JSON.parse(JSON.stringify(o));}
 function loadSave(){let s=null;try{s=JSON.parse(localStorage.getItem(SKEY)||'null');}catch(e){}const d=clone(DEF);if(s&&typeof s==='object'){for(const k in d){if(s[k]!==undefined)d[k]=s[k];}}return d;}
 let SAVE=loadSave();
@@ -806,6 +807,7 @@ async function loadAssets(progress){
   for(const k in ASSETS.thumb)THUMB[k]=ASSETS.thumb[k];
   await Promise.all(jobs);
 }
+function sImg(img){const k=CHH*RS;if(img._s&&img._sk===k)return img._s;const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;const [c,x]=mk(Math.max(1,Math.round(w*k)),Math.max(1,Math.round(h*k)));x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(img,0,0,c.width,c.height);img._s=c;img._sk=k;return c;}
 function hueImg(img,f){img._h=img._h||{};if(img._h[f])return img._h[f];const [c,x]=mk(img.naturalWidth||img.width,img.naturalHeight||img.height);try{x.filter=f;}catch(e){}x.drawImage(img,0,0);img._h[f]=c;return c;}
 function tinted(img,col){img._t=img._t||{};if(img._t[col])return img._t[col];const [c,x]=mk(img.naturalWidth||img.width,img.naturalHeight||img.height);x.drawImage(img,0,0);x.globalCompositeOperation='source-in';x.fillStyle=col;x.fillRect(0,0,c.width,c.height);img._t[col]=c;return c;}
 
@@ -1196,7 +1198,7 @@ function drawPlayer(p,t,silMode){
   if(p.after.length&&!silMode){const ti=tinted(sp.img,p.kat.trail);for(const a of p.after){c_save();ctx.globalAlpha=a.a*0.45;place(ctx,a.x,py,p.flip,p.rot,piv);ctx.scale(k,k);ctx.drawImage(ti,-sp.ax,-sp.ay);ctx.restore();}ctx.globalAlpha=1;}
   ctx.save();place(ctx,p.x+shake,py,p.flip,p.rot,piv);ctx.scale(k,k*sy);
   if(silMode)ctx.drawImage(tinted(sp.img,'#120a14'),-sp.ax,-sp.ay);
-  else{ctx.drawImage(p.hue?hueImg(sp.img,p.hue):sp.img,-sp.ax,-sp.ay);
+  else{const im0=p.hue?hueImg(sp.img,p.hue):sp.img;ctx.drawImage(sImg(im0),-sp.ax,-sp.ay,sp.img.naturalWidth||sp.img.width,sp.img.naturalHeight||sp.img.height);
     if(p.hit>0){ctx.globalAlpha=Math.min(1,p.hit);ctx.drawImage(tinted(sp.img,'#ffffff'),-sp.ax,-sp.ay);ctx.globalAlpha=1;}}
   ctx.restore();
   if(p.dizzy&&!silMode){const dir=p.flip?-1:1;const hx=p.x+dir*((sp.w*0.5-sp.ax)*k*0.7),hy=py-sp.ay*k-2;
@@ -1263,9 +1265,9 @@ function drawCutIn(cu,t){const e=cu.e,k=cu.t,inn=Math.min(1,k/0.18),out=k>0.9?Ma
   ctx.restore();ctx.restore();}
 let last=0,RENDER_DT=0.016,LOWQ=0,PERF={n:0,sum:0,skip:0};
 /* calidad automática: si el teléfono va lento, baja la resolución y los efectos y dibuja a 30 cuadros */
-function perfCheck(dt){if(LOWQ>=2||document.hidden)return;PERF.n++;PERF.sum+=dt;if(PERF.n<90)return;const avg=PERF.sum/PERF.n;PERF.n=0;PERF.sum=0;if(avg>0.024){LOWQ++;resize();if(SD.rain)setStage(G.stage);}}
+function perfCheck(dt){if(LOWQ>=(SAVE.q==='bonito'?2:3)||document.hidden)return;PERF.n++;PERF.sum+=dt;if(PERF.n<90)return;const avg=PERF.sum/PERF.n;PERF.n=0;PERF.sum=0;if(avg>(SAVE.q==='bonito'?0.024:0.0185)){LOWQ++;resize();if(SD.rain)setStage(G.stage);}}
 let SHOWN=null;function menuOpen(){return !!SHOWN&&SHOWN!=='sCine';}
-function frame(ts){requestAnimationFrame(frame);const raw=(ts-last)/1000,cap=LOWQ>=2||(LOWQ&&menuOpen());if(cap&&raw<0.028&&raw>0)return;let dt=raw;if(!(dt>0))dt=0.016;if(!cap)perfCheck(dt);dt=Math.min(0.05,dt);last=ts;RENDER_DT=dt;let udt=dt;if(G.slow>0){G.slow-=dt;udt=dt*0.3;}try{update(udt,ts);render(ts);}catch(e){console.error(e);}}
+function frame(ts){requestAnimationFrame(frame);const raw=(ts-last)/1000,cap=SAVE.q==='bonito'&&(LOWQ>=2||(LOWQ&&menuOpen()));if(cap&&raw<0.028&&raw>0)return;let dt=raw;if(!(dt>0))dt=0.016;if(!cap)perfCheck(dt);dt=Math.min(0.05,dt);last=ts;RENDER_DT=dt;let udt=dt;if(G.slow>0){G.slow-=dt;udt=dt*0.3;}try{update(udt,ts);render(ts);}catch(e){console.error(e);}}
 
 /* =========================================================
    PANTALLA / ENTRADA
@@ -1274,7 +1276,7 @@ function resize(){
   const sw=window.innerWidth,sh=window.innerHeight;const nw=Math.round(clamp(H*sw/sh,240,420));
   if(nw!==W){const oldW=W;W=nw;if(G.pl.length){const old=G.pl.map(p=>p.homeX);layout();G.pl.forEach((p,i)=>{p.x+=p.homeX-old[i];});}if(SD.rain)setStage(G.stage);}
   SCALE=Math.min(sw/W,sh/H);const cw=Math.floor(W*SCALE),ch=Math.floor(H*SCALE);
-  const dpr=Math.min(window.devicePixelRatio||1,2);RS=Math.min(cw*dpr,LOWQ>=2?720:LOWQ?960:1280)/W;
+  const dpr=Math.min(window.devicePixelRatio||1,2);RS=Math.min(cw*dpr,[1280,960,720,560][Math.min(LOWQ,3)])/W;
   cv.width=Math.round(W*RS);cv.height=Math.round(H*RS);
   cv.style.width=cw+'px';cv.style.height=ch+'px';cv.style.left=Math.floor((sw-cw)/2)+'px';cv.style.top=Math.floor((sh-ch)/2)+'px';
   $('rot').style.display=sh>sw*1.1?'block':'none';
@@ -1393,8 +1395,9 @@ function buildProgress(){
 }
 $('musBtn').addEventListener('click',()=>{SAVE.music=!SAVE.music;persist();audioInit();setMusic(MUS.level);syncToggles();});
 $('sfxBtn').addEventListener('click',()=>{SAVE.sfx=!SAVE.sfx;persist();audioInit();if(AU.ac)AU.sfx.gain.value=SAVE.sfx?1:0;syncToggles();SFX.ui();});
+$('qBtn').addEventListener('click',()=>{SAVE.q=SAVE.q==='bonito'?'fluido':'bonito';persist();LOWQ=0;PERF.n=0;PERF.sum=0;resize();if(SD.rain)setStage(G.stage);syncToggles();SFX.ui();});
 $('vibBtn').addEventListener('click',()=>{SAVE.vib=!SAVE.vib;persist();syncToggles();SFX.ui();try{if(SAVE.vib&&navigator.vibrate)navigator.vibrate(60);}catch(e){}});
-function syncToggles(){$('vibBtn').textContent='VIBRACIÓN: '+(SAVE.vib?'SÍ':'NO');$('musBtn').textContent='MÚSICA: '+(SAVE.music?'SÍ':'NO');$('sfxBtn').textContent='SONIDO: '+(SAVE.sfx?'SÍ':'NO');}
+function syncToggles(){$('qBtn').textContent=SAVE.q==='bonito'?'🎨 CALIDAD: BONITA':'⚡ CALIDAD: FLUIDA';$('vibBtn').textContent='VIBRACIÓN: '+(SAVE.vib?'SÍ':'NO');$('musBtn').textContent='MÚSICA: '+(SAVE.music?'SÍ':'NO');$('sfxBtn').textContent='SONIDO: '+(SAVE.sfx?'SÍ':'NO');}
 
 /* =========================================================
    ONLINE · hasta 4 jugadores (Firebase Realtime Database)
