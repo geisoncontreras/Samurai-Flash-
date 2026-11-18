@@ -217,6 +217,7 @@ html,body,.btn,.ar,.onR input,#pauseBtn,#onQuit{font-family:"Trebuchet MS","Aria
 #sStory.s2 .stN img{background:radial-gradient(circle at 50% 40%,#fff,#bfe8ff 60%,#3a8ad8)}
 .cnFx.wind b{position:absolute;left:0;height:2px;width:30vw;border-radius:2px;background:linear-gradient(90deg,rgba(255,255,255,0),#fff,rgba(255,255,255,0));animation:cnWind linear infinite}
 @keyframes cnWind{from{transform:translateX(-35vw)}to{transform:translateX(110vw)}}
+#verTag{position:absolute;right:10px;bottom:6px;font:700 10px "Trebuchet MS",sans-serif;color:#fff;opacity:.55;letter-spacing:.5px;pointer-events:none;text-shadow:0 1px 2px #000}
 #stMap{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;max-width:min(760px,96vw)}
 .stN{position:relative;width:clamp(44px,7.4vw,60px);height:clamp(54px,8.8vw,72px);padding:0;border-radius:14px;border:3px solid #120624;background:linear-gradient(#3d2478,#22104a);box-shadow:0 3px 0 #120624;cursor:pointer;overflow:hidden;touch-action:manipulation}
 .stN img{width:100%;height:78%;object-fit:cover;display:block;background:radial-gradient(circle at 50% 40%,#fff,#b9a6ff 60%,#4a2a8a)}
@@ -332,6 +333,7 @@ html,body,.btn,.ar,.onR input,#pauseBtn,#onQuit{font-family:"Trebuchet MS","Aria
     <div class="title"><span class="t1">SAMURAI</span><span class="t2">FLASH</span></div>
     <div class="tag big">⚔️ ¡Duelo de reflejos! El más rápido gana ⚔️</div>
     <div class="tag" id="menuBest"></div>
+    <div id="verTag">versión __VERSION__</div>
     <button class="btn" id="bPlay">▶ ¡JUGAR!</button>
     <div class="row">
       <button class="btn small alt" data-go="progress">PROGRESO</button>
@@ -1397,6 +1399,7 @@ $('musBtn').addEventListener('click',()=>{SAVE.music=!SAVE.music;persist();audio
 $('sfxBtn').addEventListener('click',()=>{SAVE.sfx=!SAVE.sfx;persist();audioInit();if(AU.ac)AU.sfx.gain.value=SAVE.sfx?1:0;syncToggles();SFX.ui();});
 $('qBtn').addEventListener('click',()=>{SAVE.q=SAVE.q==='bonito'?'fluido':'bonito';persist();LOWQ=0;PERF.n=0;PERF.sum=0;resize();if(SD.rain)setStage(G.stage);syncToggles();SFX.ui();});
 $('vibBtn').addEventListener('click',()=>{SAVE.vib=!SAVE.vib;persist();syncToggles();SFX.ui();try{if(SAVE.vib&&navigator.vibrate)navigator.vibrate(60);}catch(e){}});
+if(/__/.test($('verTag').textContent))$('verTag').textContent='versión web';
 function syncToggles(){$('qBtn').textContent=SAVE.q==='bonito'?'🎨 CALIDAD: BONITA':'⚡ CALIDAD: FLUIDA';$('vibBtn').textContent='VIBRACIÓN: '+(SAVE.vib?'SÍ':'NO');$('musBtn').textContent='MÚSICA: '+(SAVE.music?'SÍ':'NO');$('sfxBtn').textContent='SONIDO: '+(SAVE.sfx?'SÍ':'NO');}
 
 /* =========================================================

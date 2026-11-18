@@ -38,7 +38,9 @@ jobs:
       - name: Instalar dependencias y copiar el juego
         run: |
           npm ci
-          npm run sync
+          npm run copiar-juego
+          sed -i "s/__VERSION__/1.0.${GITHUB_RUN_NUMBER}/" www/index.html
+          npx cap sync android
 
       - name: Compilar APK
         working-directory: app-android/android
