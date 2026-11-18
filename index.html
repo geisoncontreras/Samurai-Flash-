@@ -269,6 +269,11 @@ html,body,.btn,.ar,.onR input,#pauseBtn,#onQuit{font-family:"Trebuchet MS","Aria
 #sMode .sh{width:100%;text-align:center}
 #sMode .btn:not(.small){width:min(340px,45vw);min-width:0;padding:8px 10px}
 #sMode .btn.small{align-self:center}
+#upd{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(8,4,20,.82)}
+#upd.on{display:flex}#upd .box{max-width:min(460px,92vw);text-align:center;color:#fff;font:700 15px "Trebuchet MS",sans-serif}
+#upd h3{margin:0 0 8px;font:900 22px "Trebuchet MS",sans-serif;color:#ffd23f}#upd p{margin:6px 0}
+#updBar{height:14px;border-radius:8px;background:rgba(255,255,255,.15);overflow:hidden;margin:10px 0}#updBar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffd23f,#ff9a3c);transition:width .2s}
+#upd .row{justify-content:center;margin-top:8px}
 #verTag{position:absolute;right:10px;bottom:6px;font:700 10px "Trebuchet MS",sans-serif;color:#fff;opacity:.55;letter-spacing:.5px;pointer-events:none;text-shadow:0 1px 2px #000}
 #stMap{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;max-width:min(760px,96vw)}
 .stN{position:relative;width:clamp(44px,7.4vw,60px);height:clamp(54px,8.8vw,72px);padding:0;border-radius:14px;border:3px solid #120624;background:linear-gradient(#3d2478,#22104a);box-shadow:0 3px 0 #120624;cursor:pointer;overflow:hidden;touch-action:manipulation}
@@ -1864,6 +1869,29 @@ function onlineResults(){
   mkb('SALIR','alt',()=>{onlineLeave();goMenu();});
   show('sResults');
 }
+/* ---- actualización automática (APK instalado fuera de la Play Store) ---- */
+const APPV='__VERSION__',UPD_BASE='https://geisoncontreras.github.io/Samurai-Flash-/descargar/';
+const UPD={pl:null,info:null,busy:false};
+function updPlug(){const C=window.Capacitor;try{if(C&&C.isNativePlatform&&C.isNativePlatform())return (C.Plugins&&C.Plugins.Actualizar)||(C.registerPlugin?C.registerPlugin('Actualizar'):null);}catch(e){}return null;}
+function updUI(h,t,btns,bar){let d=$('upd');if(!d){d=document.createElement('div');d.id='upd';document.body.appendChild(d);}
+  d.innerHTML='<div class="box"><h3>'+h+'</h3><p>'+t+'</p>'+(bar!=null?'<div id="updBar"><i style="width:'+bar+'%"></i></div>':'')+'<div class="row"></div></div>';
+  const row=d.querySelector('.row');(btns||[]).forEach(([txt,cls,fn])=>{const b=document.createElement('button');b.className='btn small '+cls;b.textContent=txt;b.addEventListener('click',()=>{try{SFX.ui();}catch(e){}fn();});row.appendChild(b);});
+  d.classList.add('on');}
+function updClose(){const d=$('upd');if(d)d.classList.remove('on');}
+async function updCheck(){const m=/^1\.0\.(\d+)$/.exec(APPV);const pl=updPlug();if(!m||!pl)return;UPD.pl=pl;
+  try{const r=await pl.revisar({url:UPD_BASE+'version.json?t='+Date.now()});const info=JSON.parse(r.texto);
+    if(!info||!(info.n>+m[1]))return;UPD.info=info;updStart();}catch(e){}}
+async function updStart(){const pl=UPD.pl,info=UPD.info;if(!pl||!info||UPD.busy)return;
+  let ok=true;try{ok=(await pl.permiso()).ok;}catch(e){}
+  if(!ok){updUI('🆕 ¡NUEVA VERSIÓN '+esc(info.v)+'!','Para actualizar solo, Android te pedirá permitir instalar apps desde Samurai Flash. Actívalo y vuelve al juego.',[['DAR PERMISO','gold',()=>pl.pedirPermiso()],['MÁS TARDE','alt',updClose]]);return;}
+  UPD.busy=true;updUI('🆕 ACTUALIZANDO A '+esc(info.v),'Descargando la versión nueva…',[],0);
+  let h=null;try{h=await pl.addListener('progreso',e=>{const i=document.querySelector('#updBar i');if(i&&e.p>=0)i.style.width=e.p+'%';const t=document.querySelector('#upd p');if(t)t.textContent='Descargando la versión nueva… '+(e.p>=0?e.p+'%':(e.mb||0).toFixed(1)+' MB');});}catch(e){}
+  try{await pl.descargar({url:UPD_BASE+'samurai-flash.apk?t='+Date.now()});
+    updUI('🆕 ¡LISTA LA VERSIÓN '+esc(info.v)+'!','Pulsa <b>Actualizar</b> (o Instalar) en la ventana de Android. Tu progreso se mantiene.',[['INSTALAR','gold',()=>{pl.instalarOtraVez().catch(()=>{UPD.busy=false;updStart();});}],['MÁS TARDE','alt',updClose]]);}
+  catch(e){updUI('No se pudo descargar','Revisa tu internet e inténtalo otra vez.',[['REINTENTAR','gold',()=>{UPD.busy=false;updStart();}],['MÁS TARDE','alt',updClose]]);}
+  finally{UPD.busy=false;try{h&&h.remove&&h.remove();}catch(e){}}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&UPD.info&&$('upd')&&$('upd').classList.contains('on')&&!UPD.busy&&/PERMISO/.test($('upd').textContent))updStart();});
+setTimeout(updCheck,1500);
 /* ---- torneo online (hasta 8, llaves en la sala: bk.j = JSON de las rondas, con ids) ---- */
 function bkGet(v){try{return JSON.parse((v&&v.bk&&v.bk.j)||'null');}catch(e){return null;}}
 function bkSettle(R,present){let ch=true,guard=0;while(ch&&guard++<40){ch=false;
