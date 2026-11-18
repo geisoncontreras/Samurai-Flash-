@@ -1937,6 +1937,8 @@ $('stGo').addEventListener('click',()=>{SFX.ui();storyFight();});
 
 /* ---------- arranque ---------- */
 G.stage=0;resize();syncToggles();requestAnimationFrame(frame);
+/* música desde el inicio: en el APK suena sin tocar; en el navegador, al primer toque en cualquier parte */
+MUS.level=1;audioInit();['pointerdown','touchstart','keydown','click'].forEach(ev=>document.addEventListener(ev,()=>audioInit(),{capture:true,passive:true}));
 loadAssets(k=>{$('loadBar').style.width=Math.round(k*100)+'%';}).then(()=>new Promise(r=>setTimeout(r,Math.max(0,2800-performance.now())))).then(()=>{$('loading').classList.add('out');setTimeout(()=>{$('loading').style.display='none';},500);buildGrid();setStage(0);goMenu();});
 window.__SF={G,SAVE,onTap,STAGES,setStage,startMatch,CHARS,O};
 </script>
