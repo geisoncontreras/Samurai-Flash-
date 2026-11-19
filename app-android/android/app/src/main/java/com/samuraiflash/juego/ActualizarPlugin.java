@@ -1,6 +1,10 @@
 package com.samuraiflash.juego;
 
 import android.app.DownloadManager;
+import android.app.PendingIntent;
+import android.content.pm.PackageInstaller;
+import java.io.FileInputStream;
+import java.io.OutputStream;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -82,11 +86,7 @@ public class ActualizarPlugin extends Plugin {
         } catch (Exception e) { call.reject("no se pudo abrir ajustes"); }
     }
 
-    private File archivo() {
-        File d = getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
-        if (d == null) d = getContext().getCacheDir();
-        return new File(d, "actualizacion.apk");
-    }
+    private File archivo() { return archivo(getContext()); }
 
     private void progreso(long hecho, long total) {
         JSObject ev = new JSObject();
@@ -182,11 +182,51 @@ public class ActualizarPlugin extends Plugin {
         try { instalar(f); call.resolve(); } catch (Exception e) { call.reject("no se pudo abrir"); }
     }
 
-    private void instalar(File f) {
-        Uri u = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", f);
-        Intent i = new Intent(Intent.ACTION_VIEW);
-        i.setDataAndType(u, "application/vnd.android.package-archive");
-        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-        getContext().startActivity(i);
+    static File archivo(Context ctx) {
+        File d = ctx.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+        if (d == null) d = ctx.getCacheDir();
+        return new File(d, "actualizacion.apk");
+    }
+
+    // respaldo: el instalador clásico de Android con el archivo descargado
+    static void respaldo(Context ctx) {
+        try {
+            File f = archivo(ctx);
+            if (!f.exists()) return;
+            Uri u = FileProvider.getUriForFile(ctx, ctx.getPackageName() + ".fileprovider", f);
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setDataAndType(u, "application/vnd.android.package-archive");
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            ctx.startActivity(i);
+        } catch (Exception e) {}
+    }
+
+    // Instala con PackageInstaller: Android cierra el juego, pone la versión nueva encima y conserva el progreso
+    private void instalar(File f) throws Exception {
+        Context ctx = getContext();
+        try {
+            PackageInstaller pi = ctx.getPackageManager().getPackageInstaller();
+            PackageInstaller.SessionParams sp = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+            sp.setAppPackageName(ctx.getPackageName());
+            sp.setSize(f.length());
+            if (Build.VERSION.SDK_INT >= 31) sp.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
+            int id = pi.createSession(sp);
+            PackageInstaller.Session s = pi.openSession(id);
+            try {
+                OutputStream out = s.openWrite("samurai-flash.apk", 0, f.length());
+                FileInputStream in = new FileInputStream(f);
+                byte[] b = new byte[65536]; int n;
+                while ((n = in.read(b)) > 0) out.write(b, 0, n);
+                in.close();
+                s.fsync(out);
+                out.close();
+                Intent it = new Intent(ctx, InstalarReceiver.class);
+                int fl = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
+                PendingIntent p = PendingIntent.getBroadcast(ctx, id, it, fl);
+                s.commit(p.getIntentSender());
+            } finally { s.close(); }
+        } catch (Exception e) {
+            respaldo(ctx);
+        }
     }
 }

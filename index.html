@@ -2119,7 +2119,7 @@ async function updStart(){const pl=UPD.pl,info=UPD.info;if(!pl||!info||UPD.busy)
   UPD.busy=true;updUI('🆕 ACTUALIZANDO A '+esc(info.v),'Descargando la versión nueva…',[],0);
   let h=null;try{h=await pl.addListener('progreso',e=>{const i=document.querySelector('#updBar i');if(i&&e.p>=0)i.style.width=e.p+'%';const t=document.querySelector('#upd p');if(t)t.textContent='Descargando la versión nueva… '+(e.p>=0?e.p+'%':(e.mb||0).toFixed(1)+' MB');});}catch(e){}
   try{await pl.descargar({url:UPD_BASE+'samurai-flash.apk?t='+Date.now()});
-    updUI('🆕 ¡LISTA LA VERSIÓN '+esc(info.v)+'!','Pulsa <b>Actualizar</b> (o Instalar) en la ventana de Android. Tu progreso se mantiene.',[['INSTALAR','gold',()=>{pl.instalarOtraVez().catch(()=>{UPD.busy=false;updStart();});}],['MÁS TARDE','alt',updClose]]);}
+    updUI('🆕 ¡LISTA LA VERSIÓN '+esc(info.v)+'!','Pulsa <b>Actualizar</b> (o Instalar) en la ventana de Android. El juego se cerrará solo para instalarse; luego ábrelo otra vez. Tu progreso se mantiene.',[['INSTALAR','gold',()=>{pl.instalarOtraVez().catch(()=>{UPD.busy=false;updStart();});}],['MÁS TARDE','alt',updClose]]);}
   catch(e){updUI('No se pudo descargar','Revisa tu internet e inténtalo otra vez, o descárgala desde la página.<br><small style="opacity:.6">'+esc(String(e&&e.message||e))+'</small>',[['REINTENTAR','gold',()=>{UPD.busy=false;updStart();}],['ABRIR PÁGINA','alt',updWeb],['MÁS TARDE','alt',updClose]]);}
   finally{UPD.busy=false;try{h&&h.remove&&h.remove();}catch(e){}}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&UPD.info&&$('upd')&&$('upd').classList.contains('on')&&!UPD.busy&&/PERMISO/.test($('upd').textContent))updStart();});

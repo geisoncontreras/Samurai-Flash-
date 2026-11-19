@@ -25,6 +25,9 @@
 
         </activity>
 
+        <!-- resultado de la instalación de la versión nueva -->
+        <receiver android:name=".InstalarReceiver" android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
