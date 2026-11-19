@@ -1,6 +1,10 @@
 package com.samuraiflash.juego;
 
+import android.app.DownloadManager;
+import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.os.Environment;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
@@ -78,36 +82,102 @@ public class ActualizarPlugin extends Plugin {
         } catch (Exception e) { call.reject("no se pudo abrir ajustes"); }
     }
 
+    private File archivo() {
+        File d = getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+        if (d == null) d = getContext().getCacheDir();
+        return new File(d, "actualizacion.apk");
+    }
+
+    private void progreso(long hecho, long total) {
+        JSObject ev = new JSObject();
+        ev.put("p", total > 0 ? (int) (hecho * 100 / total) : -1);
+        ev.put("mb", hecho / 1048576.0);
+        notifyListeners("progreso", ev);
+    }
+
+    // 1) con el gestor de descargas de Android (aguanta cambios de red y reintentos)
+    private String conGestor(String url, File f) throws Exception {
+        DownloadManager dm = (DownloadManager) getContext().getSystemService(Context.DOWNLOAD_SERVICE);
+        if (dm == null) return "sin gestor";
+        if (f.exists()) f.delete();
+        DownloadManager.Request rq = new DownloadManager.Request(Uri.parse(url));
+        rq.setTitle("Samurai Flash");
+        rq.setDescription("Descargando la versión nueva");
+        rq.setMimeType("application/vnd.android.package-archive");
+        rq.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE);
+        rq.setAllowedOverMetered(true);
+        rq.setAllowedOverRoaming(true);
+        rq.setDestinationUri(Uri.fromFile(f));
+        long id = dm.enqueue(rq);
+        long inicio = System.currentTimeMillis(), ultHecho = -1, ultCambio = inicio;
+        while (true) {
+            Thread.sleep(400);
+            Cursor c = dm.query(new DownloadManager.Query().setFilterById(id));
+            if (c == null || !c.moveToFirst()) { if (c != null) c.close(); return "descarga cancelada"; }
+            int st = c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+            long hecho = c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+            long total = c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+            int razon = c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON));
+            c.close();
+            if (st == DownloadManager.STATUS_SUCCESSFUL) return null;
+            if (st == DownloadManager.STATUS_FAILED) { dm.remove(id); return "error " + razon; }
+            long ahora = System.currentTimeMillis();
+            if (hecho != ultHecho) { ultHecho = hecho; ultCambio = ahora; progreso(Math.max(0, hecho), total); }
+            if (ahora - ultCambio > 60000) { dm.remove(id); return "sin avance"; }
+        }
+    }
+
+    // 2) respaldo: descarga directa
+    private void directa(String url, File f) throws Exception {
+        HttpURLConnection c = abrir(url);
+        c.setReadTimeout(60000);
+        int code = c.getResponseCode();
+        if (code != 200) throw new Exception("HTTP " + code);
+        long total = c.getContentLength();
+        InputStream in = c.getInputStream();
+        FileOutputStream out = new FileOutputStream(f);
+        byte[] b = new byte[65536]; int n; long hecho = 0; int ult = -1;
+        while ((n = in.read(b)) > 0) {
+            out.write(b, 0, n); hecho += n;
+            int p = total > 0 ? (int) (hecho * 100 / total) : (int) (hecho / 1048576);
+            if (p != ult) { ult = p; progreso(hecho, total); }
+        }
+        out.close(); in.close();
+        if (total > 0 && hecho < total) throw new Exception("incompleta");
+    }
+
     @PluginMethod
     public void descargar(PluginCall call) {
         String url = call.getString("url");
         if (bajando) { call.reject("ya descargando"); return; }
         bajando = true;
         new Thread(() -> {
-            File f = new File(getContext().getCacheDir(), "actualizacion.apk");
+            File f = archivo();
+            String fallo;
+            try { fallo = conGestor(url, f); } catch (Exception e) { fallo = String.valueOf(e.getMessage()); }
             try {
-                HttpURLConnection c = abrir(url);
-                long total = c.getContentLength();
-                InputStream in = c.getInputStream();
-                FileOutputStream out = new FileOutputStream(f);
-                byte[] b = new byte[65536]; int n; long hecho = 0; int ult = -1;
-                while ((n = in.read(b)) > 0) {
-                    out.write(b, 0, n); hecho += n;
-                    int p = total > 0 ? (int) (hecho * 100 / total) : -1;
-                    if (p != ult) { ult = p; JSObject ev = new JSObject(); ev.put("p", p); ev.put("mb", hecho / 1048576.0); notifyListeners("progreso", ev); }
-                }
-                out.close(); in.close();
-                if (total > 0 && hecho < total) throw new Exception("incompleto");
+                if (fallo != null || !f.exists() || f.length() < 100000) directa(url, f);
                 instalar(f);
                 call.resolve();
-            } catch (Exception e) { call.reject("falló la descarga"); }
+            } catch (Exception e) { call.reject("falló la descarga (" + fallo + " / " + e.getMessage() + ")"); }
             finally { bajando = false; }
         }).start();
     }
 
+    // abre la página de descarga en el navegador del teléfono
+    @PluginMethod
+    public void abrirWeb(PluginCall call) {
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(call.getString("url")));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            call.resolve();
+        } catch (Exception e) { call.reject("no se pudo abrir"); }
+    }
+
     @PluginMethod
     public void instalarOtraVez(PluginCall call) {
-        File f = new File(getContext().getCacheDir(), "actualizacion.apk");
+        File f = archivo();
         if (!f.exists()) { call.reject("no hay archivo"); return; }
         try { instalar(f); call.resolve(); } catch (Exception e) { call.reject("no se pudo abrir"); }
     }
