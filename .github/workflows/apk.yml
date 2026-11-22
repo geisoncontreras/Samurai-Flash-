@@ -8,6 +8,7 @@ on:
       - 'servidor/**'
       - 'voces/**'
       - 'render.yaml'
+      - 'privacidad/**'
   workflow_dispatch:
 
 permissions:
