@@ -38,6 +38,9 @@ jobs:
           # los 3 animales solo se liberan venciendo al retador
           sed -i "s/const CHAL_ON=false;/const CHAL_ON=true;/" www/index.html
           grep -q "const CHAL_ON=true;" www/index.html
+          # la Temporada 2 y sus 11 personajes solo se liberan con la compra en Google Play
+          sed -i "s/const PAY_ON=false;/const PAY_ON=true;/" www/index.html
+          grep -q "const PAY_ON=true;" www/index.html
           # Play Store no permite que la app se actualice sola: se quita el actualizador
           sed -i "s/setTimeout(updCheck,1500);//" www/index.html
           ! grep -q "setTimeout(updCheck,1500)" www/index.html
