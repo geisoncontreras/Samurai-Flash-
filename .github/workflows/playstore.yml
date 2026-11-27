@@ -16,7 +16,6 @@ jobs:
       run:
         working-directory: app-android
     env:
-      VERSION_CODE: ${{ github.run_number }}00
       VERSION_NAME: 1.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
@@ -32,6 +31,8 @@ jobs:
 
       - name: Preparar la versión de Play Store
         run: |
+          # código de versión alto y siempre creciente (Play Console ya usó códigos bajos)
+          echo "VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER * 10))" >> "$GITHUB_ENV"
           npm ci
           npm run copiar-juego
           sed -i "s/__VERSION__/${VERSION_NAME}/" www/index.html
