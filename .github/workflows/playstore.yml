@@ -16,7 +16,6 @@ jobs:
       run:
         working-directory: app-android
     env:
-      VERSION_CODE: ${{ github.run_number }}00
       VERSION_NAME: 1.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
@@ -32,12 +31,17 @@ jobs:
 
       - name: Preparar la versión de Play Store
         run: |
+          # código de versión alto y siempre creciente (Play Console ya usó códigos bajos)
+          echo "VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER * 10))" >> "$GITHUB_ENV"
           npm ci
           npm run copiar-juego
           sed -i "s/__VERSION__/${VERSION_NAME}/" www/index.html
           # los 3 animales solo se liberan venciendo al retador
           sed -i "s/const CHAL_ON=false;/const CHAL_ON=true;/" www/index.html
           grep -q "const CHAL_ON=true;" www/index.html
+          # la Temporada 2 y sus 11 personajes solo se liberan con la compra en Google Play
+          sed -i "s/const PAY_ON=false;/const PAY_ON=true;/" www/index.html
+          grep -q "const PAY_ON=true;" www/index.html
           # Play Store no permite que la app se actualice sola: se quita el actualizador
           sed -i "s/setTimeout(updCheck,1500);//" www/index.html
           ! grep -q "setTimeout(updCheck,1500)" www/index.html
@@ -47,6 +51,9 @@ jobs:
           rm android/app/src/main/java/com/samuraiflash/juego/ActualizarPlugin.java android/app/src/main/java/com/samuraiflash/juego/InstalarReceiver.java
           ! grep -rq "REQUEST_INSTALL_PACKAGES\|ActualizarPlugin" android/app/src/main
           npx cap sync android
+          # en Play Console la app está registrada como com.geisongames.samuraiflash
+          sed -i 's/applicationId "com.samuraiflash.juego"/applicationId "com.geisongames.samuraiflash"/' android/app/build.gradle
+          grep -q 'applicationId "com.geisongames.samuraiflash"' android/app/build.gradle
 
       - name: Compilar el paquete (.aab)
         working-directory: app-android/android

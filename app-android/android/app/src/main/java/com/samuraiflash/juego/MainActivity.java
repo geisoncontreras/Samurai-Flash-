@@ -11,6 +11,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(VozPlugin.class);
+        registerPlugin(CompraPlugin.class);
         registerPlugin(ActualizarPlugin.class);
         super.onCreate(savedInstanceState);
         // la música del juego empieza apenas abre, sin esperar un toque
