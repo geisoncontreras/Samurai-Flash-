@@ -9,6 +9,7 @@ on:
       - 'voces/**'
       - 'render.yaml'
       - 'privacidad/**'
+      - 'eliminar-datos/**'
   workflow_dispatch:
 
 permissions:
