@@ -50,6 +50,9 @@ jobs:
           rm android/app/src/main/java/com/samuraiflash/juego/ActualizarPlugin.java android/app/src/main/java/com/samuraiflash/juego/InstalarReceiver.java
           ! grep -rq "REQUEST_INSTALL_PACKAGES\|ActualizarPlugin" android/app/src/main
           npx cap sync android
+          # en Play Console la app está registrada como com.geisongames.samuraiflash
+          sed -i 's/applicationId "com.samuraiflash.juego"/applicationId "com.geisongames.samuraiflash"/' android/app/build.gradle
+          grep -q 'applicationId "com.geisongames.samuraiflash"' android/app/build.gradle
 
       - name: Compilar el paquete (.aab)
         working-directory: app-android/android
